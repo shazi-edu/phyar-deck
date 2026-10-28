@@ -16,7 +16,10 @@
     (function () {
       const md = navigator.mediaDevices;
       if (!md || !md.getUserMedia) return;
-      if (((window.PHYAR_CONFIG || {}).CAMERA || "") === "off") return;   // CAMERA: "off" = phone's default camera
+      // Off unless config.js asks for it: CAMERA: "hd" or "fullhd". Default = the phone's normal camera,
+      // which is what card scanning was tested with.
+      const camSetting = ((window.PHYAR_CONFIG || {}).CAMERA || "").toLowerCase();
+      if (camSetting !== "hd" && camSetting !== "fullhd") return;
       const orig = md.getUserMedia.bind(md);
       md.getUserMedia = function (c) {
         try {
@@ -685,6 +688,7 @@
     /* progress: found cards, stars, best quiz score per card [best, total, first try], first prediction per card */
     const progress = { found: store.get("found", []), stars: store.get("stars", {}), quiz: store.get("quiz", {}), poe: store.get("poe", {}) };
     let profile = store.get("profile", null);   // { id, nama, kelas, avatar }
+    let genNo = store.get("gen", 0);             // goes up each time the teacher resets this student
     const TOPICS = [...new Set(CARDS.map((c) => c.topic).filter(Boolean))];
     const totalStars = () => Object.values(progress.stars).reduce((a, b) => a + b, 0);
     const maxStars = () => CARDS.reduce((s, c) => s + (c.poe ? 1 : 0) + (c.quiz ? c.quiz.length : 0), 0);
@@ -727,6 +731,7 @@
         found: (n, t) => n + "/" + t + " kad dijumpai", nextTitle: "gelaran seterusnya", cardN: (i) => "Kad " + i,
         badges: "🏅 Lencana", myCert: "🎓 Sijil saya", certLock: (n, t) => "🔒 Sijil (" + n + "/" + t + ")",
         profile: "👤 Profil", register: "👤 Daftar", board: "🏆 Carta", myClass: "Kelas saya", all: "Semua",
+        teacherReset: "Guru anda telah set semula markah anda.<br>Jom mula semula! 💪", teacherDeleted: "Akaun anda telah dipadam oleh guru.<br>Sila daftar semula.",
         lockMsg: (t) => "Kumpul semua " + t + " kad untuk membuka sijil!", noPlayers: "Belum ada pemain lagi. Jadilah yang pertama! 🚀",
         boardErr: "Carta tidak dapat dimuatkan (tiada internet?).",
         // certificate
@@ -759,6 +764,7 @@
         found: (n, t) => n + "/" + t + " cards found", nextTitle: "next title", cardN: (i) => "Card " + i,
         badges: "🏅 Badges", myCert: "🎓 My certificate", certLock: (n, t) => "🔒 Certificate (" + n + "/" + t + ")",
         profile: "👤 Profile", register: "👤 Sign up", board: "🏆 Leaderboard", myClass: "My class", all: "Everyone",
+        teacherReset: "Your teacher has reset your scores.<br>Let's start again! 💪", teacherDeleted: "Your account was removed by your teacher.<br>Please sign up again.",
         lockMsg: (t) => "Collect all " + t + " cards to unlock your certificate!", noPlayers: "No players yet. Be the first! 🚀",
         boardErr: "Could not load the leaderboard (no internet?).",
         cTitle: "WAVE EXPERT CERTIFICATE", cTo: "Proudly awarded to", cKelas: (k) => "Class " + k,
@@ -798,7 +804,7 @@
         const before = titleNow().ms;
         progress.stars[k] = n; saveProgress();
         const now = titleNow();
-        if (now.ms !== before) setTimeout(() => toast(now.em, tr("newTitle", tName(now))), 2400);
+        if (now.ms !== before) setTimeout(() => { toast(now.em, tr("newTitle", tName(now))); SFX.levelUp(); }, 2400);
       }
     }
     function markFound(i) {
@@ -807,8 +813,8 @@
       progress.found.push(i);
       saveProgress();
       const newBadge = TOPICS.find((t) => topicDone(t) && !before.includes(t));
-      if (newBadge) toast("🏅", tr("newBadge", tr("badge", newBadge)));
-      else toast("🃏", tr("newCard", progress.found.length, CARDS.length));
+      if (newBadge) { toast("🏅", tr("newBadge", tr("badge", newBadge))); SFX.badge(); }
+      else { toast("🃏", tr("newCard", progress.found.length, CARDS.length)); SFX.collect(); }
       if (allDone()) setTimeout(celebrate, 2600);
     }
 
@@ -819,7 +825,7 @@
     function payload() {
       const t = titleNow();
       return {
-        id: profile.id, nama: profile.nama, kelas: profile.kelas, avatar: profile.avatar,
+        id: profile.id, nama: profile.nama, kelas: profile.kelas, avatar: profile.avatar, gen: genNo,
         kad: progress.found.length, bintang: totalStars(), gelaran: t.em + " " + t.ms,   // the teacher always sees Malay
         lencana: TOPICS.filter(topicDone).map((x) => "Pakar " + x).join(", "), selesai: allDone(),
         data: { found: progress.found, stars: progress.stars, quiz: progress.quiz, poe: progress.poe },
@@ -846,7 +852,7 @@
 
     /* ---------- interface helpers ---------- */
     const UI = {};
-    let soundOn = true, activeCard = null, labelsOn = true;
+    let soundOn = store.get("sound", true), activeCard = null, labelsOn = true;
     const allVideos = [];
     function setTitle(t) { UI.title.textContent = t || ""; UI.title.classList.toggle("hidden", !t); }
     function setLoading(on) { UI.loading.classList.toggle("hidden", !on); }
@@ -876,6 +882,134 @@
     const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
     function openSheet(html) { UI.sheet.innerHTML = html; UI.sheet.classList.remove("closed"); }
     function closeSheet() { UI.sheet.classList.add("closed"); }
+
+    /* ==================================================================
+       Sound effects, made live with the Web Audio API (no sound files).
+       All sounds respect the 🔊 button. Phones only allow sound after a tap,
+       so the engine starts on the student's first tap.
+       ================================================================== */
+    const SFX = (() => {
+      let ac = null, master = null, enabled = true;
+      const loops = {};
+      function ctx() {
+        try {
+          if (!ac) {
+            const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+            ac = new AC(); master = ac.createGain(); master.gain.value = 0.7; master.connect(ac.destination);
+            setInterval(watchdog, 150);
+          }
+          if (ac.state === "suspended") ac.resume();
+        } catch (e) { return null; }
+        return ac;
+      }
+      const ready = () => enabled && ac && ac.state === "running";
+      function env(g, t0, a, peak, dur) {          // quick attack, smooth exponential release
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t0 + a);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      }
+      function tone(f, dur, o) {
+        if (!ready()) return; o = o || {};
+        const t0 = ac.currentTime + (o.at || 0), osc = ac.createOscillator(), g = ac.createGain();
+        osc.type = o.type || "sine"; osc.frequency.setValueAtTime(f, t0);
+        if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t0 + dur);
+        env(g, t0, o.attack || 0.005, o.vol || 0.2, dur);
+        let node = osc;
+        if (o.lp) { const fl = ac.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = o.lp; osc.connect(fl); node = fl; }
+        node.connect(g); g.connect(master); osc.start(t0); osc.stop(t0 + dur + 0.05);
+      }
+      let NOISE = null;
+      function noiseBuf() {
+        if (!NOISE) { NOISE = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate); const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+        return NOISE;
+      }
+      function noise(dur, o) {
+        if (!ready()) return; o = o || {};
+        const t0 = ac.currentTime + (o.at || 0), src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+        src.buffer = noiseBuf(); f.type = o.ftype || "bandpass"; f.frequency.setValueAtTime(o.freq || 800, t0); f.Q.value = o.q || 0.8;
+        if (o.to) f.frequency.exponentialRampToValueAtTime(o.to, t0 + dur);
+        env(g, t0, o.attack || 0.02, o.vol || 0.15, dur);
+        src.connect(f); f.connect(g); g.connect(master); src.start(t0); src.stop(t0 + dur + 0.05);
+      }
+      /* continuous sounds (resonance drone, sea): keep alive by calling loop() every frame */
+      function loop(name, make, freq, vol) {
+        if (!ready()) return;
+        let L = loops[name];
+        if (!L) { L = loops[name] = make(); }
+        L.last = performance.now();
+        const t = ac.currentTime;
+        if (freq && L.osc) L.osc.frequency.setTargetAtTime(freq, t, 0.08);
+        L.gain.gain.setTargetAtTime(vol, t, 0.1);
+      }
+      function watchdog() {                         // fade out loops that stopped being refreshed
+        const now = performance.now();
+        Object.keys(loops).forEach((k) => {
+          const L = loops[k];
+          if (now - L.last > 250 || !enabled) {
+            L.gain.gain.setTargetAtTime(0, ac.currentTime, 0.08);
+            if (now - L.last > 1500) { try { L.stop(); } catch (e) {} delete loops[k]; }
+          }
+        });
+      }
+      const makeDrone = () => {
+        const osc = ac.createOscillator(), g = ac.createGain();
+        osc.type = "triangle"; g.gain.value = 0;
+        osc.connect(g); g.connect(master); osc.start();
+        return { osc, gain: g, stop() { osc.stop(); }, last: 0 };
+      };
+      const makeSurf = () => {
+        const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+        src.buffer = noiseBuf(); src.loop = true; f.type = "lowpass"; f.frequency.value = 700; g.gain.value = 0;
+        src.connect(f); f.connect(g); g.connect(master); src.start();
+        return { gain: g, stop() { src.stop(); }, last: 0 };
+      };
+      const chord = (fs, gap, dur, vol, type) => fs.forEach((f, i) => tone(f, dur, { at: i * gap, vol, type: type || "triangle" }));
+      let lastSlide = 0;
+      return {
+        unlock: ctx,
+        setEnabled(v) { enabled = v; if (!v) watchdog(); },
+        tap() { tone(880, 0.05, { type: "triangle", vol: 0.06 }); },
+        slide(r) { const n = performance.now(); if (n - lastSlide < 45) return; lastSlide = n; tone(300 + 900 * r, 0.04, { type: "triangle", vol: 0.07 }); },
+        found() { chord([660, 990], 0.08, 0.25, 0.14, "sine"); },
+        collect() { chord([784, 1047, 1319], 0.07, 0.3, 0.13); },
+        correct() { chord([523, 659, 784, 1047], 0.07, 0.35, 0.13); },
+        wrong() { tone(330, 0.35, { to: 196, type: "sine", vol: 0.16 }); },
+        observe() { tone(523, 0.18, { type: "sine", vol: 0.1 }); tone(784, 0.25, { at: 0.12, type: "sine", vol: 0.1 }); },
+        levelUp() { chord([392, 523, 659, 784, 1047], 0.06, 0.4, 0.12); },
+        badge() { chord([523, 659, 784], 0.1, 0.3, 0.13); chord([1047, 1319, 1568], 0.06, 0.6, 0.1, "sine"); },
+        fanfare() { chord([392, 523, 659], 0.12, 0.35, 0.14); chord([784, 988, 1175, 1568], 0.09, 0.9, 0.12, "sine");
+          for (let i = 0; i < 10; i++) tone(1500 + Math.random() * 1500, 0.08, { at: 0.6 + i * 0.07, vol: 0.04 }); },
+        zoom(up) { tone(up ? 600 : 500, 0.06, { to: up ? 900 : 330, type: "sine", vol: 0.07 }); },
+        // ---- physics sounds ----
+        horn(vol) {   // train horn (two notes), volume = how loud the observer at the house hears it
+          const v = 0.03 + 0.2 * vol;
+          [311, 370].forEach((f) => tone(f, 0.9, { type: "sawtooth", vol: v, lp: 1400, attack: 0.04 }));
+        },
+        pulse(kind) {
+          if (kind === "sonar") tone(1400, 0.5, { vol: 0.16 });
+          else if (kind === "ultra") tone(2600, 0.12, { vol: 0.08 });
+          else { tone(90, 0.4, { to: 40, vol: 0.3 }); noise(0.25, { freq: 200, vol: 0.12 }); }
+        },
+        echo(kind) {
+          if (kind === "sonar") tone(1400, 0.45, { vol: 0.07, lp: 1200 });
+          else if (kind === "ultra") tone(2600, 0.1, { vol: 0.04, lp: 2000 });
+          else tone(80, 0.35, { to: 45, vol: 0.14 });
+        },
+        knock() { tone(220, 0.12, { to: 150, vol: 0.12 }); noise(0.06, { freq: 1500, vol: 0.05 }); },
+        pluck(f) { tone(f || 440, 0.25, { type: "triangle", vol: 0.06 }); },
+        bell(tau) { const d = Math.min(4.4, 3 * tau); tone(520, d, { vol: 0.12, attack: 0.003 }); tone(1300, d * 0.6, { vol: 0.05, attack: 0.003 }); },
+        meet(constructive) {
+          if (constructive) chord([523, 659, 784], 0, 0.6, 0.12, "sine");
+          else noise(0.5, { freq: 400, to: 200, vol: 0.06 });
+        },
+        drone(freq, vol) { loop("drone", makeDrone, freq, vol); },
+        surf(vol) { loop("surf", makeSurf, 0, vol); },
+      };
+    })();
+    // start the audio engine on the first tap anywhere
+    ["pointerdown", "touchend", "keydown"].forEach((ev) => window.addEventListener(ev, () => SFX.unlock(), { capture: true, passive: true }));
+    // soft click for every button tap
+    document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("button")) SFX.tap(); }, true);
 
     /* ---------- video shader (green/black removal + rounded corners) ---------- */
     const VERT = `varying vec2 vUv;
@@ -1002,6 +1136,12 @@
       };
       sim.update = (sec) => {
         sim.clock += sec;
+        const kH = Math.floor(sim.clock / PERIOD);
+        if (sim._kH !== kH) {   // a new horn every wave period
+          sim._kH = kH;
+          const r = sim.dT / 15;   // more temperature difference → more bending
+          SFX.horn(night ? 0.35 + 0.65 * r : 1 - 0.85 * r);
+        }
         const g = gOf(), T = tMax(g);
         fronts.forEach((mesh, i) => {
           const phase = ((sim.clock / PERIOD) + i / N) % 1;
@@ -1164,6 +1304,7 @@
       const deepSpeed = Math.sqrt(yTop - B + 0.012), DT = 0.055 / deepSpeed, PERIOD = 1.3;
       sim.update = (sec) => {
         sim.clock += sec;
+        SFX.surf(0.05 + 0.03 * Math.sin(sim.clock * 2 * Math.PI / PERIOD));
         const ph = ((sim.clock / PERIOD) % 1) * DT, arr = wgeo.attributes.position.array, w = 0.0055;
         let nseg = 0;
         const out = (x1, y1, x2, y2) => {
@@ -1260,7 +1401,17 @@
     /* pulse-echo animation shared by Ultrasonik, Gelombang Bunyi (seismik) and Sonar */
     function echoSim(o) {
       const fmtT = (s) => (s < 0.01 ? (s * 1000).toFixed(3) + " ms" : s.toFixed(3) + " s");
+      const timing = (t, v) => {
+        const [sx, sy] = o.tx, ty = o.yMin + ((v - o.min) / (o.max - o.min)) * (o.yMax - o.yMin);
+        const dist = Math.hypot(o.targetX - sx, ty - sy), cyc = (2 * dist) / 260 + 0.9;
+        return { k: Math.floor(t / cyc), tt: t % cyc, T1: dist / 260 };
+      };
       return {
+        sound(t, v) {
+          const { k, tt, T1 } = timing(t, v);
+          if (this._k !== k) { this._k = k; this._e = false; SFX.pulse(o.snd); }
+          if (!this._e && tt >= 2 * T1) { this._e = true; SFX.echo(o.snd); }
+        },
         slider: {
           label: o.label, min: o.min, max: o.max, step: o.step, start: o.start, val: (v) => v + " " + o.unit,
           info: (v) => {
@@ -1316,6 +1467,7 @@
     const SIM_TYPES = {
       /* ---------- Gelombang melintang ---------- */
       melintang: {
+        sound(t, f) { const k = Math.floor(t * f * 0.25); if (this._k !== k) { this._k = k; SFX.pluck(330 + 55 * f); } },
         slider: { label: "〰️ Frekuensi", min: 1, max: 5, step: 1, start: 2, val: (v) => v + " Hz",
           info: (v) => "Zarah merah bergetar <b>" + v + " kali sesaat</b> ke atas–bawah (berserenjang), manakala gelombang bergerak ke kanan. <i>Animasi diperlahankan.</i>" },
         draw(ctx, t, f) {
@@ -1342,6 +1494,7 @@
 
       /* ---------- Gelombang membujur ---------- */
       membujur: {
+        sound(t, f) { const k = Math.floor(t * f * 0.25); if (this._k !== k) { this._k = k; SFX.pluck(262 + 44 * f); } },
         slider: { label: "〰️ Frekuensi", min: 1, max: 5, step: 1, start: 2, val: (v) => v + " Hz",
           info: (v) => "Zarah merah bergetar ke kiri–kanan, <b>selari</b> dengan arah perambatan, " + v + " kali sesaat. Mampatan dan renggangan bergerak ke kanan." },
         draw(ctx, t, f) {
@@ -1364,6 +1517,7 @@
 
       /* ---------- Gelombang mekanikal ---------- */
       mekanikal: {
+        sound(t, m) { const k = Math.floor(t * 0.6); if (this._k !== k) { this._k = k; if (m) SFX.knock(); } },
         slider: { label: "🧱 Medium", min: 0, max: 1, step: 1, start: 1, val: (v) => (v ? "Ada" : "Tiada (vakum)"),
           info: (v) => (v ? "Zarah medium bergetar dan memindahkan tenaga dari satu zarah ke zarah seterusnya."
             : "Tanpa medium tiada zarah untuk bergetar, jadi gelombang mekanikal <b>tidak dapat</b> merambat.") },
@@ -1459,14 +1613,18 @@
       },
 
       ultrasonik: echoSim({ label: "🩺 Kedalaman organ", min: 4, max: 12, step: 1, start: 8, unit: "cm", toM: 0.01, speed: 1540, medium: "tisu badan",
-        tx: [470, 1140], targetX: 470, yMin: 1215, yMax: 1345, target: "organ", color: "#ff6b8a", msgDx: 190, msgDy: -10 }),
+        tx: [470, 1140], targetX: 470, yMin: 1215, yMax: 1345, target: "organ", snd: "ultra", color: "#ff6b8a", msgDx: 190, msgDy: -10 }),
       seismik: echoSim({ label: "🪨 Kedalaman lapisan", min: 200, max: 2000, step: 100, start: 1200, unit: "m", toM: 1, speed: 3000, medium: "batuan",
-        tx: [385, 908], targetX: 620, yMin: 1000, yMax: 1400, target: "layer", layerX: [300, 980], color: "#ff8c1a", msgDx: 0, msgDy: -55 }),
+        tx: [385, 908], targetX: 620, yMin: 1000, yMax: 1400, target: "layer", snd: "seis", layerX: [300, 980], color: "#ff8c1a", msgDx: 0, msgDy: -55 }),
       sonar: echoSim({ label: "🐟 Kedalaman ikan", min: 10, max: 80, step: 5, start: 40, unit: "m", toM: 1, speed: 1500, medium: "air laut",
-        tx: [348, 885], targetX: 480, yMin: 1000, yMax: 1420, target: "fish", color: "#ff5a5a", msgDx: 0, msgDy: -45 }),
+        tx: [348, 885], targetX: 480, yMin: 1000, yMax: 1420, target: "fish", snd: "sonar", color: "#ff5a5a", msgDx: 0, msgDy: -45 }),
 
       /* ---------- Pelembapan ---------- */
       pelembapan: {
+        sound(t, b) {
+          const cyc = (880 - 140) / 170 + 1.2, k = Math.floor(t / cyc);
+          if (this._k !== k) { this._k = k; const g = ((b / 100) * 1.2) / 330; SFX.bell(g > 0 ? 1 / (g * 170) : 99); }
+        },
         slider: { label: "🌬️ Pelembapan", min: 0, max: 100, step: 10, start: 40, val: (v) => (v ? v + "%" : "Tiada"),
           info: (v) => (v ? "Amplitud berkurang kerana tenaga hilang, tetapi <b>tempoh kekal sama (T₁ = T₂)</b>. Pelembapan lebih besar → amplitud berkurang lebih cepat."
             : "Tiada pelembapan: amplitud kekal kerana tiada tenaga hilang (keadaan unggul).") },
@@ -1491,6 +1649,11 @@
 
       /* ---------- Resonans ---------- */
       resonans: {
+        sound(t, f) {
+          const f0 = 5, gm = 0.9, amp = (x) => 1 / Math.sqrt((f0 * f0 - x * x) ** 2 + (gm * x) ** 2), a = amp(f) / amp(f0);
+          SFX.drone(f * 55, 0.015 + 0.13 * a);
+          if (a > 0.9 && !this._res) { this._res = true; SFX.correct(); } else if (a < 0.8) this._res = false;
+        },
         slider: { label: "🔊 Frekuensi daya luar, F", min: 1, max: 10, step: 0.5, start: 3, val: (v) => v + " Hz",
           info: (v) => (v === 5 ? "F = frekuensi asli (5 Hz) → <b>RESONANS!</b> Bandul berayun dengan amplitud maksimum."
             : "F = " + v + " Hz ≠ frekuensi asli (5 Hz) → resonans tidak berlaku, amplitud kecil. Cuba F = 5 Hz!") },
@@ -1559,6 +1722,11 @@
 
       /* ---------- Interferens (superposisi dua denyut) ---------- */
       interferens: {
+        sound(t, m) {
+          const D = 330, v = 140, cyc = (2 * D) / v + 1.0, k = Math.floor(t / cyc), tt = t % cyc;
+          if (this._k !== k) { this._k = k; this._m = false; SFX.pluck(392); }
+          if (!this._m && tt >= D / v) { this._m = true; SFX.meet(m !== 2); }
+        },
         slider: { label: "🌊 Gabungan", min: 0, max: 2, step: 1, start: 0, val: (v) => ["Puncak + puncak", "Lembangan + lembangan", "Puncak + lembangan"][v],
           info: (v) => ["Interferens <b>membina</b>: A + A = 2A", "Interferens <b>membina</b>: −A + (−A) = −2A", "Interferens <b>memusnah</b>: A + (−A) = 0"][v] +
             ". Selepas bertemu, setiap denyut meneruskan perjalanan tanpa berubah." },
@@ -1607,7 +1775,7 @@
         def.draw(ctx, sim.clock, sim.dT, cfg);
         tex.needsUpdate = true;
       }
-      sim.update = (sec) => { sim.clock += sec; acc += sec; if (acc >= 1 / 30) { acc = 0; draw(); } };
+      sim.update = (sec) => { sim.clock += sec; if (def.sound) def.sound(sim.clock, sim.dT); acc += sec; if (acc >= 1 / 30) { acc = 0; draw(); } };
       sim.setDT = (v) => { sim.dT = v; draw(); };
       sim.text = (v) => ({ label: sl.label, val: sl.val(v), info: sl.info(v) });
       draw();
@@ -1724,6 +1892,7 @@
       },
 
       onFound: function () {
+        SFX.found();
         this.visible = true; activeCard = this;
         setScanning(false); setTitle(this.cfg.title);
         markFound(this.idx);
@@ -1748,7 +1917,7 @@
         openSheet('<span class="tag">' + tr("predict") + "</span><h3>" + p.q + "</h3>" +
           p.options.map((o, i) => '<button class="opt" data-i="' + i + '">' + o + "</button>").join(""));
         UI.sheet.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => {
-          this.prediction = +b.dataset.i;
+          this.prediction = +b.dataset.i; SFX.observe();
           this.poeState = "watch";
           closeSheet();
           toast("👀", tr("observe"));
@@ -1759,6 +1928,7 @@
       },
       explainPOE: function () {
         const p = this.cfg.poe, right = this.prediction === p.answer;
+        if (right) SFX.correct(); else SFX.wrong();
         if (!(this.idx in progress.poe)) { progress.poe[this.idx] = right; saveProgress(); }   // first prediction, for the teacher
         if (right) addStars(this.idx, "poe", 1);
         openSheet('<span class="tag">' + tr("explain") + "</span><h3>" + (right ? tr("right") : tr("wrong")) + "</h3>" +
@@ -1777,6 +1947,7 @@
             progress.quiz[this.idx] = [Math.max(score, prev ? prev[0] : 0), qs.length, prev ? prev[2] : score];
             saveProgress();
             addStars(this.idx, "quiz", score);
+            if (score === qs.length) setTimeout(() => SFX.badge(), 150);
             openSheet('<span class="tag">' + tr("quiz") + "</span><h3>" + tr("well") + '</h3><div class="stars">' +
               "⭐".repeat(score) + "☆".repeat(qs.length - score) + "</div><p>" + tr("score", score, qs.length) + "</p>" +
               '<button class="big next">' + tr("close") + "</button>");
@@ -1789,6 +1960,7 @@
           const opts = UI.sheet.querySelectorAll(".opt");
           opts.forEach((b) => b.addEventListener("click", () => {
             const ok = +b.dataset.i === q.answer;
+            if (ok) SFX.correct(); else SFX.wrong();
             if (ok) score++;
             opts.forEach((o) => { o.disabled = true; if (+o.dataset.i === q.answer) o.classList.add("right"); });
             if (!ok) b.classList.add("wrong");
@@ -2028,6 +2200,25 @@
     function resetProgress() {
       progress.found = []; progress.stars = {}; progress.quiz = {}; progress.poe = {};
     }
+    /* when the page opens, ask the teacher's sheet whether this student was reset or deleted */
+    function checkTeacherStatus() {
+      if (!API || !profile) return;
+      apiGet({ action: "status", id: profile.id }).then((r) => {
+        if (!r || !r.ok) return;
+        if (r.deleted) {
+          clearTimeout(syncTimer); syncTimer = null;
+          resetProgress(); ["found", "stars", "quiz", "poe"].forEach((k) => store.set(k, progress[k]));
+          profile = null; store.set("profile", null); genNo = 0; store.set("gen", 0);
+          updateProgressUI(); toast("👋", tr("teacherDeleted"));
+        } else if ((Number(r.gen) || 0) > genNo) {
+          clearTimeout(syncTimer); syncTimer = null;
+          genNo = Number(r.gen); store.set("gen", genNo);
+          resetProgress(); saveProgress();
+          toast("↺", tr("teacherReset"));
+        }
+      }).catch(() => {});
+    }
+    checkTeacherStatus();
     REG.go.addEventListener("click", async () => {
       const nama = clean(REG.name.value, 20), kelas = clean(REG.kelas.value, 15).toUpperCase();
       if (!REG.avatar) { REG.msg.textContent = tr("needAvatar"); return; }
@@ -2035,6 +2226,7 @@
       if (!kelas) { REG.msg.textContent = tr("needKelas"); return; }
       const samePerson = profile && profile.nama.toLowerCase() === nama.toLowerCase() && profile.kelas === kelas;
       if (!samePerson && profile) resetProgress();          // a different student on this phone starts fresh
+      if (!samePerson) { genNo = 0; store.set("gen", 0); }
       profile = { id: samePerson ? profile.id : newId(), nama, kelas, avatar: REG.avatar };
       // same name + class already registered on another phone? continue that progress
       if (API && !samePerson) {
@@ -2044,6 +2236,7 @@
           if (r && r.student && r.student.data) {
             const d = r.student.data;
             profile.id = r.student.id;
+            genNo = Number(r.student.gen) || 0; store.set("gen", genNo);
             if (r.student.nama) { profile.nama = r.student.nama; profile.kelas = r.student.kelas; }   // keep the original spelling
             progress.found = [...new Set([...(d.found || []), ...progress.found])];
             Object.keys(d.stars || {}).forEach((k) => (progress.stars[k] = Math.max(progress.stars[k] || 0, d.stars[k])));
@@ -2186,12 +2379,14 @@
     }
     document.getElementById("certClose").addEventListener("click", () => document.getElementById("cert").classList.add("hidden"));
     function celebrate() {
-      closeSheet(); confetti(); syncNow();
+      closeSheet(); confetti(); syncNow(); SFX.fanfare();
       if (profile) openCertificate();
     }
 
+    SFX.setEnabled(soundOn);
+    UI.soundBtn.textContent = soundOn ? "🔊" : "🔇"; UI.soundBtn.classList.toggle("on", soundOn);
     UI.soundBtn.addEventListener("click", () => {
-      soundOn = !soundOn;
+      soundOn = !soundOn; store.set("sound", soundOn); SFX.setEnabled(soundOn);
       allVideos.forEach((v) => (v.muted = !soundOn));
       UI.soundBtn.textContent = soundOn ? "🔊" : "🔇";
       UI.soundBtn.classList.toggle("on", soundOn);
@@ -2202,11 +2397,12 @@
     });
     UI.resetBtn.addEventListener("click", () => { if (activeCard) { activeCard.userRot = 0; activeCard.userScale = 1; } });
     const zoomBy = (f) => { if (activeCard) activeCard.userScale = Math.min(2.5, Math.max(0.5, activeCard.userScale * f)); };
-    UI.zoomIn.addEventListener("click", () => zoomBy(1.2));
-    UI.zoomOut.addEventListener("click", () => zoomBy(1 / 1.2));
+    UI.zoomIn.addEventListener("click", () => { zoomBy(1.2); SFX.zoom(true); });
+    UI.zoomOut.addEventListener("click", () => { zoomBy(1 / 1.2); SFX.zoom(false); });
     UI.quizBtn.addEventListener("click", () => { if (activeCard) activeCard.startQuiz(); });
     UI.dT.addEventListener("input", () => {
       updateSimText(UI.dT.value);
+      SFX.slide((+UI.dT.value - +UI.dT.min) / Math.max(1e-9, +UI.dT.max - +UI.dT.min));
       if (activeCard && activeCard.sim) activeCard.sim.setDT(+UI.dT.value);
     });
     UI.bubble.addEventListener("click", () => UI.bubble.classList.add("hidden"));
