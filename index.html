@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script src="config.js"></script>
 
   <style>
     :root {
@@ -23,15 +24,19 @@
     button { font-family: inherit; cursor: pointer; }
 
     /* ---------- start screen ---------- */
+    /* background picture (bg.jpg) with the cover shown as a framed card on top */
     #start { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column;
-      align-items: center; overflow: hidden; text-align: center; background: var(--bg); color: var(--white); }
-    #start .cover { position: relative; width: 100%; max-width: 560px; flex: 0 1 auto; }
-    #start .cover img { display: block; width: 100%; max-height: 66vh; object-fit: cover;
-      object-position: top center; animation: rise .7s ease-out both; }
-    #start .cover::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 90px;
-      background: linear-gradient(rgba(46,143,74,0), var(--bg)); }
-    #start .panel { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 10px; padding: 8px 20px max(18px, env(safe-area-inset-bottom)); margin-top: -40px; position: relative; z-index: 1; }
+      align-items: center; justify-content: flex-start; gap: 14px; overflow-y: auto; text-align: center; color: var(--white);
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); box-sizing: border-box;
+      background: var(--bg) url("bg.jpg") center / cover no-repeat; }
+    #start > .cover { margin-top: auto; } #start > :last-child { margin-bottom: auto; }
+    #start .cover { position: relative; width: min(78vw, 46vh, 400px); flex: 0 0 auto; }
+    #start .cover img { display: block; width: 100%; border-radius: 22px; border: 4px solid var(--white);
+      box-shadow: 0 10px 0 rgba(23,35,61,.35), 0 18px 40px rgba(0,0,0,.25); animation: rise .7s ease-out both; }
+    #start .panel { display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(92vw, 420px);
+      padding: 12px 16px 14px; box-sizing: border-box; border-radius: 24px; position: relative; z-index: 1;
+      background: rgba(21, 122, 64, .55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      border: 2px solid rgba(255,255,255,.35); }
     #start .sub { font-size: 18px; font-weight: 700; text-shadow: 0 2px 0 rgba(23,35,61,.35); }
     .big { font-size: 22px; font-weight: 800; color: var(--navy); padding: 10px 36px;
       border: 4px solid var(--navy); border-radius: 999px; background: var(--yellow); box-shadow: 0 6px 0 var(--navy); }
@@ -131,6 +136,53 @@
 
     #collection { position: fixed; z-index: 60; inset: 0; background: rgba(23,35,61,.55);
       display: flex; align-items: flex-end; justify-content: center; transition: opacity .25s; }
+    /* ---------- registration, certificate, leaderboard ---------- */
+    #hello { font-size: 15px; font-weight: 600; min-height: 22px; text-shadow: 0 1px 0 rgba(23,35,61,.35); }
+    #hello b { font-weight: 800; }
+    #switchBtn { font-size: 12px; font-weight: 700; color: var(--white); background: rgba(23,35,61,.35);
+      border: 1px solid rgba(255,255,255,.7); border-radius: 999px; padding: 1px 10px; margin-left: 4px; }
+    .overlay { position: fixed; inset: 0; z-index: 80; background: rgba(23,35,61,.6); display: flex;
+      align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; transition: opacity .25s; }
+    .overlay.hidden { display: none; }
+    #langBox { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 2; display: flex;
+      background: rgba(23,35,61,.45); border: 2px solid rgba(255,255,255,.7); border-radius: 999px; padding: 3px; }
+    #langBox button { font: inherit; font-size: 14px; font-weight: 800; color: #fff; background: none; border: 0; border-radius: 999px; padding: 2px 12px; }
+    #langBox button.on { background: var(--yellow); color: var(--navy); }
+    #progress { max-width: calc(100% - 28px); overflow: hidden; text-overflow: ellipsis; }
+    .overlay .box { width: 100%; max-width: 420px; max-height: 92vh; overflow-y: auto; background: var(--white);
+      border: 4px solid var(--navy); border-radius: 26px; box-shadow: 0 8px 0 var(--navy); padding: 18px; box-sizing: border-box; text-align: center; }
+    .overlay h3 { margin: 0 0 4px; font-size: 22px; }
+    .muted { color: #45506a; font-size: 15px; margin: 0 0 10px; }
+    .tiny { color: #7b8496; font-size: 12px; margin: 8px 0 0; }
+    .avi { display: inline-block; width: 1.3em; height: 1.3em; border-radius: 50%; vertical-align: middle; flex: 0 0 auto;
+      background-image: url("avatars.jpg"); background-size: 800% 400%; background-color: #fff; }
+    .avatars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 6px 0 12px; }
+    .avatars button { aspect-ratio: 1; border-radius: 50%; border: 3px solid transparent; background: none; padding: 0; transition: transform .15s; }
+    .avatars button .avi { width: 100%; height: 100%; }
+    .avatars button.sel { border-color: var(--navy); box-shadow: 0 0 0 3px var(--yellow); transform: scale(1.1); }
+    .overlay label { display: block; text-align: left; font-weight: 700; font-size: 15px; margin: 8px 0; }
+    .overlay input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font: inherit; font-size: 18px;
+      padding: 8px 12px; border: 3px solid var(--navy); border-radius: 14px; -webkit-user-select: text; user-select: text; }
+    .link { background: none; border: 0; color: #45506a; font-weight: 700; font-size: 15px; margin-top: 10px; text-decoration: underline; }
+    a.big { display: inline-block; text-decoration: none; box-sizing: border-box; }
+    #certImg { width: 100%; border-radius: 14px; border: 3px solid var(--navy); margin: 8px 0 0; display: block;
+      -webkit-touch-callout: default; }
+    #confetti { position: fixed; inset: 0; z-index: 90; pointer-events: none; width: 100%; height: 100%; }
+    .me { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; text-align: left; }
+    .me .av .avi { width: 100%; height: 100%; }
+    .me .av { font-size: 44px; width: 64px; height: 64px; overflow: hidden; border-radius: 50%; background: var(--green-l);
+      border: 3px solid var(--navy); display: flex; align-items: center; justify-content: center; }
+    .me .t { font-size: 14px; font-weight: 800; background: var(--yellow); border: 2px solid var(--navy); border-radius: 999px; padding: 1px 10px; display: inline-block; }
+    .row2 { display: flex; gap: 8px; margin: 10px 0; }
+    .row2 button { flex: 1; font-size: 16px; padding: 8px 10px; }
+    .board { width: 100%; border-collapse: collapse; font-size: 15px; margin: 6px 0 12px; }
+    .board td { padding: 5px 4px; border-bottom: 1px solid #eef1f5; text-align: left; }
+    .board td.r { text-align: right; font-weight: 700; white-space: nowrap; }
+    .board tr.mine td { background: #fff6cc; }
+    .tabs { display: flex; gap: 6px; margin: 4px 0 6px; }
+    .tabs button { flex: 1; font-size: 14px; font-weight: 700; border: 2px solid var(--navy); border-radius: 999px; background: var(--white); padding: 4px; }
+    .tabs button.on { background: var(--yellow); }
+
     #collection .box { width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; background: var(--white);
       border-radius: 26px 26px 0 0; border-top: 4px solid var(--navy); padding: 16px 16px 24px; box-sizing: border-box; }
     #collection h3 { margin: 0 0 4px; font-size: 22px; }
@@ -595,15 +647,124 @@
       get(k, d) { try { const v = localStorage.getItem("phyar_" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
       set(k, v) { try { localStorage.setItem("phyar_" + k, JSON.stringify(v)); } catch (e) {} },
     };
-    const progress = { found: store.get("found", []), stars: store.get("stars", {}) };
+    /* progress: found cards, stars, best quiz score per card [best, total, first try], first prediction per card */
+    const progress = { found: store.get("found", []), stars: store.get("stars", {}), quiz: store.get("quiz", {}), poe: store.get("poe", {}) };
+    let profile = store.get("profile", null);   // { id, nama, kelas, avatar }
     const TOPICS = [...new Set(CARDS.map((c) => c.topic).filter(Boolean))];
     const totalStars = () => Object.values(progress.stars).reduce((a, b) => a + b, 0);
+    const maxStars = () => CARDS.reduce((s, c) => s + (c.poe ? 1 : 0) + (c.quiz ? c.quiz.length : 0), 0);
     const topicDone = (t) => CARDS.every((c, i) => c.topic !== t || progress.found.includes(i));
+    const allDone = () => progress.found.length >= CARDS.length;
 
-    function saveProgress() { store.set("found", progress.found); store.set("stars", progress.stars); updateProgressUI(); }
+    /* Gen Z titles by share of the maximum stars */
+    const TITLES = [
+      { min: 0,    em: "🌱", ms: "Perintis Gelombang",  en: "Wave Explorer" },
+      { min: 0.25, em: "🌊", ms: "Penjelajah Gelombang", en: "Wave Adventurer" },
+      { min: 0.5,  em: "⚡", ms: "Penguasa Frekuensi",  en: "Frequency Master" },
+      { min: 0.75, em: "🔥", ms: "Jaguh Gelombang",     en: "Wave Champion" },
+      { min: 0.9,  em: "👑", ms: "Legenda Gelombang",   en: "Wave Legend" },
+    ];
+
+    /* ---------- language: instructions and certificate only (card content stays in Malay) ---------- */
+    let LANG = store.get("lang", "ms");
+    const L = {
+      ms: {
+        start: "Mula Imbas ▶", collection: (n, t) => "🃏 Koleksi Saya (" + n + "/" + t + ")", camera: "Benarkan akses kamera bila diminta 📷",
+        sub: "Gelombang · Fizik Tingkatan 4", hello: "Hai", change: "Tukar",
+        regTitle: "👋 Daftar Pemain", regIntro: "Pilih avatar dan tulis nama panggilan anda.", regName: "Nama panggilan", regKelas: "Kelas",
+        phName: "cth: Aina", phKelas: "cth: 4 Sains 1", regGo: "Jom Mula! 🚀", regSave: "Simpan ✓", cancel: "Batal",
+        regPrivacy: "Hanya nama panggilan, kelas dan kemajuan kad dihantar kepada guru anda.",
+        regSwitch: "Tukar nama atau kelas untuk bermain sebagai pemain lain.", needAvatar: "Pilih satu avatar dahulu 🙂",
+        needName: "Tulis nama panggilan (sekurang-kurangnya 2 huruf).", needKelas: "Tulis kelas anda.", checking: "Menyemak…",
+        resumed: (n, t) => "Progres disambung!<br>" + n + "/" + t + " kad", hi: (n) => "Hai, " + n + "!",
+        hint: "Halakan kamera ke kad PhyAR 📱", loading: "Memuatkan…",
+        aSound: "Bunyi", aLabel: "Label", aQuiz: "Kuiz", aReset: "Set semula",
+        newTitle: (x) => "Gelaran baru!<br>" + x, newBadge: (x) => "Lencana baru!<br>" + x, newCard: (n, t) => "Kad baru dijumpai! " + n + "/" + t,
+        badge: (x) => "Pakar " + x,
+        predict: "🤔 RAMAL", observe: "PERHATI<br>Lihat apa yang berlaku!", explain: "💡 TERANG",
+        right: "Ramalan anda betul! 🎉", wrong: "Hmm, perhatikan semula 🤔", answer: "Jawapan:",
+        trySlider: "🎚️ Cuba gerakkan gelongsor di bawah dan lihat perubahannya!", cont: "Teruskan",
+        quiz: "⭐ KUIZ", well: "Tahniah!", score: (a, b) => "Anda dapat " + a + "/" + b + ".", close: "Tutup",
+        correct: "✅ Betul! ", notYet: "❌ Belum tepat. ", next: "Seterusnya ▶", seeScore: "Lihat markah",
+        certDone: "🎉 Tahniah! Semua 16 kad terkumpul!", certSave: "Tekan lama pada sijil untuk simpan, atau guna butang di bawah.",
+        certDl: "⬇️ Muat turun sijil", certFile: "Sijil-PhyAR-",
+        regFirst: "Daftar untuk menyimpan progres dan mendapatkan sijil.", myCards: "🃏 Koleksi Kad Saya",
+        found: (n, t) => n + "/" + t + " kad dijumpai", nextTitle: "gelaran seterusnya", cardN: (i) => "Kad " + i,
+        badges: "🏅 Lencana", myCert: "🎓 Sijil saya", certLock: (n, t) => "🔒 Sijil (" + n + "/" + t + ")",
+        profile: "👤 Profil", register: "👤 Daftar", board: "🏆 Carta", myClass: "Kelas saya", all: "Semua",
+        lockMsg: (t) => "Kumpul semua " + t + " kad untuk membuka sijil!", noPlayers: "Belum ada pemain lagi. Jadilah yang pertama! 🚀",
+        boardErr: "Carta tidak dapat dimuatkan (tiada internet?).",
+        // certificate
+        cTitle: "SIJIL PAKAR GELOMBANG", cTo: "Dengan bangganya dianugerahkan kepada", cKelas: (k) => "Kelas " + k,
+        cFor: (t) => "kerana berjaya mengumpul kesemua " + t + " kad PhyAR", cTopic: "Bab Gelombang · Fizik Tingkatan 4",
+        cStats: (a, b, c) => "⭐ " + a + " / " + b + " bintang   ·   🏅 " + c + " lencana",
+        months: ["Januari", "Februari", "Mac", "April", "Mei", "Jun", "Julai", "Ogos", "September", "Oktober", "November", "Disember"],
+      },
+      en: {
+        start: "Start Scanning ▶", collection: (n, t) => "🃏 My Collection (" + n + "/" + t + ")", camera: "Allow camera access when asked 📷",
+        sub: "Waves · Form 4 Physics", hello: "Hi", change: "Change",
+        regTitle: "👋 Player Sign-up", regIntro: "Choose an avatar and type your nickname.", regName: "Nickname", regKelas: "Class",
+        phName: "e.g. Aina", phKelas: "e.g. 4 Sains 1", regGo: "Let's Go! 🚀", regSave: "Save ✓", cancel: "Cancel",
+        regPrivacy: "Only your nickname, class and card progress are sent to your teacher.",
+        regSwitch: "Change the name or class to play as a different player.", needAvatar: "Choose an avatar first 🙂",
+        needName: "Type a nickname (at least 2 letters).", needKelas: "Type your class.", checking: "Checking…",
+        resumed: (n, t) => "Progress restored!<br>" + n + "/" + t + " cards", hi: (n) => "Hi, " + n + "!",
+        hint: "Point the camera at a PhyAR card 📱", loading: "Loading…",
+        aSound: "Sound", aLabel: "Labels", aQuiz: "Quiz", aReset: "Reset",
+        newTitle: (x) => "New title!<br>" + x, newBadge: (x) => "New badge!<br>" + x, newCard: (n, t) => "New card found! " + n + "/" + t,
+        badge: (x) => x + " Expert",
+        predict: "🤔 PREDICT", observe: "OBSERVE<br>Watch what happens!", explain: "💡 EXPLAIN",
+        right: "Your prediction was right! 🎉", wrong: "Hmm, look again 🤔", answer: "Answer:",
+        trySlider: "🎚️ Try moving the slider below and watch what changes!", cont: "Continue",
+        quiz: "⭐ QUIZ", well: "Well done!", score: (a, b) => "You scored " + a + "/" + b + ".", close: "Close",
+        correct: "✅ Correct! ", notYet: "❌ Not quite. ", next: "Next ▶", seeScore: "See my score",
+        certDone: "🎉 Congratulations! All 16 cards collected!", certSave: "Press and hold the certificate to save it, or use the button below.",
+        certDl: "⬇️ Download certificate", certFile: "Certificate-PhyAR-",
+        regFirst: "Sign up to save your progress and earn a certificate.", myCards: "🃏 My Card Collection",
+        found: (n, t) => n + "/" + t + " cards found", nextTitle: "next title", cardN: (i) => "Card " + i,
+        badges: "🏅 Badges", myCert: "🎓 My certificate", certLock: (n, t) => "🔒 Certificate (" + n + "/" + t + ")",
+        profile: "👤 Profile", register: "👤 Sign up", board: "🏆 Leaderboard", myClass: "My class", all: "Everyone",
+        lockMsg: (t) => "Collect all " + t + " cards to unlock your certificate!", noPlayers: "No players yet. Be the first! 🚀",
+        boardErr: "Could not load the leaderboard (no internet?).",
+        cTitle: "WAVE EXPERT CERTIFICATE", cTo: "Proudly awarded to", cKelas: (k) => "Class " + k,
+        cFor: (t) => "for collecting all " + t + " PhyAR cards", cTopic: "Waves Chapter · Form 4 Physics",
+        cStats: (a, b, c) => "⭐ " + a + " / " + b + " stars   ·   🏅 " + c + " badges",
+        months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+      },
+    };
+    const tr = (k, ...a) => { const v = k in L[LANG] ? L[LANG][k] : L.ms[k]; return typeof v === "function" ? v(...a) : v; };
+    const tName = (t) => t[LANG] || t.ms;
+    function titleNow() {
+      const r = totalStars() / Math.max(1, maxStars());
+      return TITLES.filter((t) => r >= t.min).pop();
+    }
+    /* avatars: 32 pictures in avatars.jpg (8 across, 4 down), stored as "a0" … "a31" */
+    const AVATARS = Array.from({ length: 32 }, (_, i) => "a" + i);
+    const isPic = (a) => /^a\d{1,2}$/.test(String(a));
+    function avHTML(a, cls) {
+      if (!isPic(a)) return esc(a || "🙂");                 // older profiles used emoji
+      const i = +String(a).slice(1), c = i % 8, r = Math.floor(i / 8);
+      return '<span class="avi' + (cls ? " " + cls : "") + '" style="background-position:' + (c * 100 / 7) + "% " + (r * 100 / 3) + '%"></span>';
+    }
+    let AV_IMG = null;
+    function avatarImage() {
+      if (!AV_IMG) AV_IMG = new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = "avatars.jpg"; });
+      return AV_IMG;
+    }
+
+    function saveProgress() {
+      ["found", "stars", "quiz", "poe"].forEach((k) => store.set(k, progress[k]));
+      updateProgressUI();
+      queueSync();
+    }
     function addStars(cardIndex, key, n) {
       const k = cardIndex + ":" + key;
-      if ((progress.stars[k] || 0) < n) { progress.stars[k] = n; saveProgress(); }
+      if ((progress.stars[k] || 0) < n) {
+        const before = titleNow().ms;
+        progress.stars[k] = n; saveProgress();
+        const now = titleNow();
+        if (now.ms !== before) setTimeout(() => toast(now.em, tr("newTitle", tName(now))), 2400);
+      }
     }
     function markFound(i) {
       if (progress.found.includes(i)) return;
@@ -611,8 +772,41 @@
       progress.found.push(i);
       saveProgress();
       const newBadge = TOPICS.find((t) => topicDone(t) && !before.includes(t));
-      if (newBadge) toast("🏅", "Lencana baru!<br>Pakar " + newBadge);
-      else toast("🃏", "Kad baru dijumpai! " + progress.found.length + "/" + CARDS.length);
+      if (newBadge) toast("🏅", tr("newBadge", tr("badge", newBadge)));
+      else toast("🃏", tr("newCard", progress.found.length, CARDS.length));
+      if (allDone()) setTimeout(celebrate, 2600);
+    }
+
+    /* ---------- sync with the teacher's Google Sheet (see config.js) ---------- */
+    const CFG = window.PHYAR_CONFIG || {};
+    const API = (CFG.SCRIPT_URL || "").trim();
+    let syncTimer = null;
+    function payload() {
+      const t = titleNow();
+      return {
+        id: profile.id, nama: profile.nama, kelas: profile.kelas, avatar: profile.avatar,
+        kad: progress.found.length, bintang: totalStars(), gelaran: t.em + " " + t.ms,   // the teacher always sees Malay
+        lencana: TOPICS.filter(topicDone).map((x) => "Pakar " + x).join(", "), selesai: allDone(),
+        data: { found: progress.found, stars: progress.stars, quiz: progress.quiz, poe: progress.poe },
+      };
+    }
+    function syncNow() {
+      clearTimeout(syncTimer); syncTimer = null;
+      if (!API || !profile) return;
+      try { fetch(API, { method: "POST", mode: "no-cors", body: JSON.stringify(payload()) }).catch(() => {}); } catch (e) {}
+    }
+    function queueSync() { if (!API || !profile) return; clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, 1500); }
+    // send any pending change when the student leaves or switches app
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden" && syncTimer && API && profile) {
+        clearTimeout(syncTimer); syncTimer = null;
+        try { navigator.sendBeacon(API, new Blob([JSON.stringify(payload())], { type: "text/plain" })); } catch (e) {}
+      }
+    });
+    function apiGet(params) {
+      if (!API) return Promise.reject(new Error("no api"));
+      const q = Object.keys(params).map((k) => k + "=" + encodeURIComponent(params[k])).join("&");
+      return fetch(API + "?" + q).then((r) => r.json());
     }
 
     /* ---------- interface helpers ---------- */
@@ -631,9 +825,20 @@
     }
     function updateProgressUI() {
       if (!UI.progress) return;
-      UI.progress.textContent = "🃏 " + progress.found.length + "/" + CARDS.length + "  ⭐ " + totalStars();
-      UI.collectionBtn.textContent = "🃏 Koleksi Saya (" + progress.found.length + "/" + CARDS.length + ")";
+      UI.progress.innerHTML = (profile ? avHTML(profile.avatar) + " " + esc(profile.nama) + " · " : "") +
+        "🃏 " + progress.found.length + "/" + CARDS.length + "  ⭐ " + totalStars();
+      UI.collectionBtn.textContent = tr("collection", progress.found.length, CARDS.length);
+      const hello = document.getElementById("hello");
+      if (hello) {
+        if (profile) {
+          const t = titleNow();
+          hello.innerHTML = tr("hello") + ", " + avHTML(profile.avatar) + " <b>" + esc(profile.nama) + "</b>! · " + t.em + " " + tName(t) +
+            ' <button id="switchBtn" type="button">' + tr("change") + "</button>";
+          document.getElementById("switchBtn").onclick = () => openRegister(false);
+        } else hello.textContent = "";
+      }
     }
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
     function openSheet(html) { UI.sheet.innerHTML = html; UI.sheet.classList.remove("closed"); }
     function closeSheet() { UI.sheet.classList.add("closed"); }
 
@@ -1504,13 +1709,13 @@
       /* ---------- Predict → Observe → Explain ---------- */
       askPOE: function () {
         const p = this.cfg.poe;
-        openSheet('<span class="tag">🤔 RAMAL</span><h3>' + p.q + "</h3>" +
+        openSheet('<span class="tag">' + tr("predict") + "</span><h3>" + p.q + "</h3>" +
           p.options.map((o, i) => '<button class="opt" data-i="' + i + '">' + o + "</button>").join(""));
         UI.sheet.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => {
           this.prediction = +b.dataset.i;
           this.poeState = "watch";
           closeSheet();
-          toast("👀", "PERHATI<br>Lihat apa yang berlaku!");
+          toast("👀", tr("observe"));
           this.showContent();
           clearTimeout(this.poeTimer);
           this.poeTimer = setTimeout(() => this.explainPOE(), 7000);
@@ -1518,11 +1723,12 @@
       },
       explainPOE: function () {
         const p = this.cfg.poe, right = this.prediction === p.answer;
+        if (!(this.idx in progress.poe)) { progress.poe[this.idx] = right; saveProgress(); }   // first prediction, for the teacher
         if (right) addStars(this.idx, "poe", 1);
-        openSheet('<span class="tag">💡 TERANG</span><h3>' + (right ? "Ramalan anda betul! 🎉" : "Hmm, perhatikan semula 🤔") + "</h3>" +
-          "<p><b>Jawapan:</b> " + p.options[p.answer] + "</p><p>" + p.explain + "</p>" +
-          (this.sim ? "<p>🌡️ Cuba gelongsor suhu dan lihat perubahannya!</p>" : "") +
-          '<button class="big next">Teruskan</button>');
+        openSheet('<span class="tag">' + tr("explain") + "</span><h3>" + (right ? tr("right") : tr("wrong")) + "</h3>" +
+          "<p><b>" + tr("answer") + "</b> " + p.options[p.answer] + "</p><p>" + p.explain + "</p>" +
+          (this.sim ? "<p>" + tr("trySlider") + "</p>" : "") +
+          '<button class="big next">' + tr("cont") + "</button>");
         UI.sheet.querySelector(".next").addEventListener("click", () => { this.poeState = "done"; closeSheet(); });
       },
 
@@ -1531,15 +1737,18 @@
         const qs = this.cfg.quiz; let n = 0, score = 0;
         const show = () => {
           if (n >= qs.length) {
+            const prev = progress.quiz[this.idx];
+            progress.quiz[this.idx] = [Math.max(score, prev ? prev[0] : 0), qs.length, prev ? prev[2] : score];
+            saveProgress();
             addStars(this.idx, "quiz", score);
-            openSheet('<span class="tag">⭐ KUIZ</span><h3>Tahniah!</h3><div class="stars">' +
-              "⭐".repeat(score) + "☆".repeat(qs.length - score) + "</div><p>Anda dapat " + score + "/" + qs.length + ".</p>" +
-              '<button class="big next">Tutup</button>');
+            openSheet('<span class="tag">' + tr("quiz") + "</span><h3>" + tr("well") + '</h3><div class="stars">' +
+              "⭐".repeat(score) + "☆".repeat(qs.length - score) + "</div><p>" + tr("score", score, qs.length) + "</p>" +
+              '<button class="big next">' + tr("close") + "</button>");
             UI.sheet.querySelector(".next").addEventListener("click", closeSheet);
             return;
           }
           const q = qs[n];
-          openSheet('<span class="tag">⭐ KUIZ ' + (n + 1) + "/" + qs.length + "</span><h3>" + q.q + "</h3>" +
+          openSheet('<span class="tag">' + tr("quiz") + " " + (n + 1) + "/" + qs.length + "</span><h3>" + q.q + "</h3>" +
             q.options.map((o, i) => '<button class="opt" data-i="' + i + '">' + o + "</button>").join("") + '<div class="fb"></div>');
           const opts = UI.sheet.querySelectorAll(".opt");
           opts.forEach((b) => b.addEventListener("click", () => {
@@ -1547,8 +1756,8 @@
             if (ok) score++;
             opts.forEach((o) => { o.disabled = true; if (+o.dataset.i === q.answer) o.classList.add("right"); });
             if (!ok) b.classList.add("wrong");
-            UI.sheet.querySelector(".fb").innerHTML = "<p>" + (ok ? "✅ Betul! " : "❌ Belum tepat. ") + q.explain + "</p>" +
-              '<button class="big next">' + (n + 1 < qs.length ? "Seterusnya ▶" : "Lihat markah") + "</button>";
+            UI.sheet.querySelector(".fb").innerHTML = "<p>" + (ok ? tr("correct") : tr("notYet")) + q.explain + "</p>" +
+              '<button class="big next">' + (n + 1 < qs.length ? tr("next") : tr("seeScore")) + "</button>";
             UI.sheet.querySelector(".next").addEventListener("click", () => { n++; show(); });
           }));
         };
@@ -1631,20 +1840,49 @@
 <body>
   <!-- start screen -->
   <div id="start">
+    <div id="langBox" role="group" aria-label="Bahasa / Language"><button type="button" data-l="ms">BM</button><button type="button" data-l="en">EN</button></div>
     <div class="cover"><img src="cover.jpg" alt="PhyAR Deck" /></div>
     <div class="panel">
-      <div class="sub">Gelombang · Fizik Tingkatan 4</div>
-      <button id="startBtn" class="big">Mula Imbas ▶</button>
+      <div class="sub" data-i18n="sub">Gelombang · Fizik Tingkatan 4</div>
+      <div id="hello"></div>
+      <button id="startBtn" class="big" data-i18n="start">Mula Imbas ▶</button>
       <button id="collectionBtn">🃏 Koleksi Saya</button>
-      <div class="note">Benarkan akses kamera bila diminta 📷</div>
+      <div class="note" data-i18n="camera">Benarkan akses kamera bila diminta 📷</div>
     </div>
   </div>
+
+  <!-- registration -->
+  <div id="register" class="overlay hidden">
+    <div class="box">
+      <h3 data-i18n="regTitle">👋 Daftar Pemain</h3>
+      <p class="muted" data-i18n="regIntro">Pilih avatar dan tulis nama panggilan anda.</p>
+      <div class="avatars" id="avatarGrid"></div>
+      <label><span data-i18n="regName">Nama panggilan</span><input id="regName" maxlength="20" autocomplete="off" placeholder="cth: Aina" data-i18n-ph="phName" /></label>
+      <label><span data-i18n="regKelas">Kelas</span><input id="regKelas" maxlength="15" autocomplete="off" placeholder="cth: 4 Sains 1" data-i18n-ph="phKelas" /></label>
+      <div id="regMsg" class="muted"></div>
+      <button id="regGo" class="big next" type="button">Jom Mula! 🚀</button>
+      <button id="regCancel" class="link" type="button" data-i18n="cancel">Batal</button>
+      <p class="tiny" data-i18n="regPrivacy">Hanya nama panggilan, kelas dan kemajuan kad dihantar kepada guru anda.</p>
+    </div>
+  </div>
+
+  <!-- certificate -->
+  <div id="cert" class="overlay hidden">
+    <div class="box">
+      <h3 data-i18n="certDone">🎉 Tahniah! Semua 16 kad terkumpul!</h3>
+      <img id="certImg" alt="Sijil Pakar Gelombang" />
+      <p class="tiny" data-i18n="certSave">Tekan lama pada sijil untuk simpan, atau guna butang di bawah.</p>
+      <a id="certDl" class="big next" download="Sijil-PhyAR.png" data-i18n="certDl">⬇️ Muat turun sijil</a>
+      <button id="certClose" class="link" type="button" data-i18n="close">Tutup</button>
+    </div>
+  </div>
+  <canvas id="confetti"></canvas>
 
   <div id="frame"><i></i><i></i><i></i><i></i></div>
   <button id="progress" class="pill">🃏 0/16 ⭐ 0</button>
   <div id="title" class="pill center hidden"></div>
-  <div id="loading" class="pill center hidden">Memuatkan…</div>
-  <div id="hint" class="pill center">Halakan kamera ke kad PhyAR 📱</div>
+  <div id="loading" class="pill center hidden" data-i18n="loading">Memuatkan…</div>
+  <div id="hint" class="pill center" data-i18n="hint">Halakan kamera ke kad PhyAR 📱</div>
   <div id="hotspots"></div>
   <div id="bubble" class="hidden"></div>
 
@@ -1655,10 +1893,10 @@
   </div>
 
   <div id="bar">
-    <button id="soundBtn" class="btn on" aria-label="Bunyi">🔊</button>
-    <button id="labelBtn" class="btn on" aria-label="Label">🏷️</button>
-    <button id="quizBtn" class="btn" aria-label="Kuiz">⭐</button>
-    <button id="resetBtn" class="btn" aria-label="Set semula">↺</button>
+    <button id="soundBtn" class="btn on" aria-label="Bunyi" data-i18n-aria="aSound">🔊</button>
+    <button id="labelBtn" class="btn on" aria-label="Label" data-i18n-aria="aLabel">🏷️</button>
+    <button id="quizBtn" class="btn" aria-label="Kuiz" data-i18n-aria="aQuiz">⭐</button>
+    <button id="resetBtn" class="btn" aria-label="Set semula" data-i18n-aria="aReset">↺</button>
   </div>
 
   <div id="sheet" class="closed"></div>
@@ -1695,14 +1933,210 @@
      "resetBtn", "quizBtn", "labelBtn", "soundBtn", "sheet", "toast", "collection", "collectionBtn"]
       .forEach((id) => (UI[id] = document.getElementById(id)));
     const scene = document.querySelector("a-scene");
-    updateProgressUI();
+    function applyLang() {
+      document.documentElement.lang = LANG;
+      document.querySelectorAll("[data-i18n]").forEach((el) => (el.textContent = tr(el.dataset.i18n)));
+      document.querySelectorAll("[data-i18n-ph]").forEach((el) => (el.placeholder = tr(el.dataset.i18nPh)));
+      document.querySelectorAll("[data-i18n-aria]").forEach((el) => el.setAttribute("aria-label", tr(el.dataset.i18nAria)));
+      document.querySelectorAll("#langBox button").forEach((b) => b.classList.toggle("on", b.dataset.l === LANG));
+      updateProgressUI();
+    }
+    document.querySelectorAll("#langBox button").forEach((b) => b.addEventListener("click", () => {
+      LANG = b.dataset.l; store.set("lang", LANG); applyLang();
+    }));
+    applyLang();
 
     function startAR() {
       document.getElementById("start").style.display = "none";
       const go = () => scene.systems["mindar-image-system"].start();
       if (scene.hasLoaded) go(); else scene.addEventListener("loaded", go, { once: true });
     }
-    document.getElementById("startBtn").addEventListener("click", startAR);
+    document.getElementById("startBtn").addEventListener("click", () => { if (profile) { syncNow(); startAR(); } else openRegister(true); });
+
+    /* ---------- registration ---------- */
+    const REG = { box: document.getElementById("register"), name: document.getElementById("regName"),
+      kelas: document.getElementById("regKelas"), msg: document.getElementById("regMsg"), go: document.getElementById("regGo"), avatar: null, thenStart: false };
+    const grid = document.getElementById("avatarGrid");
+    AVATARS.forEach((a) => {
+      const b = document.createElement("button"); b.type = "button"; b.dataset.a = a; b.innerHTML = avHTML(a); b.setAttribute("aria-label", "Avatar " + (+a.slice(1) + 1));
+      b.addEventListener("click", () => { REG.avatar = a; REG.msg.textContent = ""; grid.querySelectorAll("button").forEach((x) => x.classList.toggle("sel", x === b)); });
+      grid.appendChild(b);
+    });
+    function openRegister(thenStart) {
+      REG.thenStart = thenStart;
+      REG.name.value = profile ? profile.nama : ""; REG.kelas.value = profile ? profile.kelas : "";
+      REG.avatar = profile ? profile.avatar : null;
+      grid.querySelectorAll("button").forEach((x) => x.classList.toggle("sel", x.dataset.a === REG.avatar));
+      REG.msg.textContent = profile ? tr("regSwitch") : "";
+      REG.go.textContent = thenStart ? tr("regGo") : tr("regSave");
+      REG.box.classList.remove("hidden");
+    }
+    const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const clean = (s, n) => s.replace(/\s+/g, " ").trim().slice(0, n);
+    function resetProgress() {
+      progress.found = []; progress.stars = {}; progress.quiz = {}; progress.poe = {};
+    }
+    REG.go.addEventListener("click", async () => {
+      const nama = clean(REG.name.value, 20), kelas = clean(REG.kelas.value, 15).toUpperCase();
+      if (!REG.avatar) { REG.msg.textContent = tr("needAvatar"); return; }
+      if (nama.length < 2) { REG.msg.textContent = tr("needName"); return; }
+      if (!kelas) { REG.msg.textContent = tr("needKelas"); return; }
+      const samePerson = profile && profile.nama.toLowerCase() === nama.toLowerCase() && profile.kelas === kelas;
+      if (!samePerson && profile) resetProgress();          // a different student on this phone starts fresh
+      profile = { id: samePerson ? profile.id : newId(), nama, kelas, avatar: REG.avatar };
+      // same name + class already registered on another phone? continue that progress
+      if (API && !samePerson) {
+        REG.go.disabled = true; REG.msg.textContent = tr("checking");
+        try {
+          const r = await apiGet({ action: "find", nama, kelas });
+          if (r && r.student && r.student.data) {
+            const d = r.student.data;
+            profile.id = r.student.id;
+            if (r.student.nama) { profile.nama = r.student.nama; profile.kelas = r.student.kelas; }   // keep the original spelling
+            progress.found = [...new Set([...(d.found || []), ...progress.found])];
+            Object.keys(d.stars || {}).forEach((k) => (progress.stars[k] = Math.max(progress.stars[k] || 0, d.stars[k])));
+            Object.assign(progress.quiz, d.quiz || {}); Object.assign(progress.poe, d.poe || {});
+            toast("🔄", tr("resumed", progress.found.length, CARDS.length));
+          }
+        } catch (e) { /* offline: just carry on */ }
+        REG.go.disabled = false;
+      }
+      store.set("profile", profile);
+      saveProgress(); syncNow();
+      REG.box.classList.add("hidden");
+      if (REG.thenStart) startAR();
+      else toast(avHTML(profile.avatar), tr("hi", esc(profile.nama)));
+    });
+    document.getElementById("regCancel").addEventListener("click", () => REG.box.classList.add("hidden"));
+
+    /* ---------- confetti ---------- */
+    function confetti() {
+      const cv = document.getElementById("confetti"), c = cv.getContext("2d");
+      cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio;
+      const cols = ["#ffd23f", "#23a05a", "#e2453f", "#1a59e6", "#ff9f1c", "#b15cff"];
+      const P = Array.from({ length: 160 }, () => ({ x: Math.random() * cv.width, y: -Math.random() * cv.height * 0.6,
+        vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, r: 4 + Math.random() * 6, a: Math.random() * 6, col: cols[(Math.random() * 6) | 0] }));
+      const t0 = performance.now();
+      (function frame(t) {
+        c.clearRect(0, 0, cv.width, cv.height);
+        P.forEach((p) => {
+          p.x += p.vx * devicePixelRatio; p.y += p.vy * devicePixelRatio; p.a += 0.1;
+          c.save(); c.translate(p.x, p.y); c.rotate(p.a); c.fillStyle = p.col;
+          c.fillRect(-p.r * devicePixelRatio, -p.r * 0.5 * devicePixelRatio, p.r * 2 * devicePixelRatio, p.r * devicePixelRatio); c.restore();
+        });
+        if (t - t0 < 4500) requestAnimationFrame(frame); else c.clearRect(0, 0, cv.width, cv.height);
+      })(t0);
+    }
+
+    /* ---------- certificate ---------- */
+    /* certificate drawn on the designed template (sijil.jpg, 1024 × 1536).
+       The sample details on the template are covered and replaced with the student's own. */
+    let SIJIL_IMG = null;
+    function sijilImage() {
+      if (!SIJIL_IMG) SIJIL_IMG = new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = "sijil.jpg"; });
+      return SIJIL_IMG;
+    }
+    async function makeCertificate() {
+      const tpl = await sijilImage();
+      if (!tpl) return makeCertificateBasic();               // template missing → simple certificate
+      try { await document.fonts.load("800 40px 'Baloo 2'"); await document.fonts.load("700 40px 'Baloo 2'"); } catch (e) {}
+      const W = 1024, H = 1536, cv = document.createElement("canvas"); cv.width = W * 2; cv.height = H * 2;
+      const c = cv.getContext("2d"); c.scale(2, 2);
+      c.drawImage(tpl, 0, 0, W, H);
+      const F = (w, s, it) => (it ? "italic " : "") + w + " " + s + "px 'Baloo 2', system-ui, sans-serif";
+      const box = (x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
+      const cover = (x, y, w, h, col) => { c.fillStyle = col; box(x, y, w, h, Math.min(16, h / 2)); c.fill(); };
+      const text = (s, x, y, font, col, align, maxW) => {
+        c.font = font; c.textAlign = align || "center"; c.textBaseline = "middle"; c.fillStyle = col;
+        let k = 1; while (maxW && c.measureText(s).width > maxW && k > 0.45) { k -= 0.04; c.font = font.replace(/(\d+)px/, (m, n) => Math.round(n * k) + "px"); }
+        c.fillText(s, x, y);
+      };
+      const CREAM = "#fdfbf0", NAVY = "#0f1b38", GREENT = "#0b6a2a";
+      // avatar in the circle
+      c.fillStyle = "#daf2df"; c.beginPath(); c.arc(512, 630, 74, 0, 7); c.fill();
+      const avImg = isPic(profile.avatar) ? await avatarImage() : null;
+      if (avImg) {
+        const i = +profile.avatar.slice(1), sw = avImg.width / 8, sh = avImg.height / 4;
+        c.save(); c.beginPath(); c.arc(512, 630, 70, 0, 7); c.clip();
+        c.drawImage(avImg, (i % 8) * sw, Math.floor(i / 8) * sh, sw, sh, 442, 560, 140, 140); c.restore();
+      } else text(profile.avatar, 512, 636, "96px system-ui, 'Apple Color Emoji', 'Noto Color Emoji', sans-serif", "#000");
+      // name
+      cover(330, 708, 364, 74, CREAM);
+      text(profile.nama, 512, 746, F(800, 66), NAVY, "center", 350);
+      // class pill
+      c.fillStyle = "#e2f6e5"; box(371, 810, 284, 68, 34); c.fill();
+      text("Kelas " + profile.kelas, 512, 834, F(800, 34), GREENT, "center", 260);
+      text("Class " + profile.kelas, 512, 862, F(600, 21, true), NAVY, "center", 260);
+      // stars and badges
+      cover(378, 1248, 124, 36, CREAM); cover(634, 1248, 84, 36, CREAM);
+      text(totalStars() + " / " + maxStars(), 383, 1267, F(800, 30), NAVY, "left", 115);
+      text(String(TOPICS.filter(topicDone).length), 639, 1267, F(800, 30), NAVY, "left", 70);
+      // personal title where the sample date was
+      cover(340, 1336, 344, 42, CREAM);
+      const t = titleNow(), ttl = t.em + "  " + tName(t);
+      c.font = F(800, 24); const tw = Math.min(330, c.measureText(ttl).width + 44);
+      c.fillStyle = "#ffd23f"; box(512 - tw / 2, 1338, tw, 38, 19); c.fill();
+      c.strokeStyle = "#17233d"; c.lineWidth = 2.5; c.stroke();
+      text(ttl, 512, 1358, F(800, 24), NAVY, "center", tw - 24);
+      // date written on the "Tarikh / Date" line
+      const d = new Date(), BULAN = tr("months");
+      text(d.getDate() + " " + BULAN[d.getMonth()] + " " + d.getFullYear(), 384, 1420, F(700, 22), NAVY, "center", 160);
+      return cv.toDataURL("image/jpeg", 0.92);
+    }
+    async function makeCertificateBasic() {
+      try { await document.fonts.load("800 40px 'Baloo 2'"); await document.fonts.load("600 40px 'Baloo 2'"); } catch (e) {}
+      const W = 1080, H = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+      const c = cv.getContext("2d"), F = (w, s) => w + " " + s + "px 'Baloo 2', system-ui, sans-serif";
+      const g = c.createLinearGradient(0, 0, W, H); g.addColorStop(0, "#8fe0a8"); g.addColorStop(1, "#157a40");
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+      c.fillStyle = "rgba(255,255,255,0.12)";
+      for (let i = 0; i < 26; i++) { c.beginPath(); c.arc((i * 197) % W, (i * 311) % H, 18 + (i % 5) * 10, 0, 7); c.fill(); }
+      const box = (x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
+      c.fillStyle = "#17233d"; box(70, 82, W - 140, H - 150, 46); c.fill();
+      c.fillStyle = "#ffffff"; box(60, 70, W - 140, H - 150, 46); c.fill();
+      c.strokeStyle = "#ffd23f"; c.lineWidth = 10; box(92, 102, W - 204, H - 214, 32); c.stroke();
+      c.textAlign = "center"; c.textBaseline = "middle";
+      // draw centred text, shrinking it until it fits inside the frame
+      const txt = (s, y, font, col) => { c.font = font; let k = 1; while (c.measureText(s).width > W - 300 && k > 0.5) { k -= 0.04; c.font = font.replace(/(\d+)px/, (m, n) => Math.round(n * k) + "px"); } c.fillStyle = col; c.fillText(s, W / 2 - 10, y); };
+      c.font = F(800, 64); const w1 = c.measureText("Phy").width, w2 = c.measureText("AR").width, w3 = c.measureText(" Deck").width, x0 = W / 2 - 10 - (w1 + w2 + w3) / 2;
+      c.textAlign = "left"; c.fillStyle = "#23a05a"; c.fillText("Phy", x0, 190); c.fillStyle = "#f2b705"; c.fillText("AR", x0 + w1, 190);
+      c.fillStyle = "#23a05a"; c.fillText(" Deck", x0 + w1 + w2, 190); c.textAlign = "center";
+      txt(tr("cTitle"), 280, F(800, 70), "#17233d");
+      txt(tr("cTo"), 365, F(600, 34), "#45506a");
+      c.fillStyle = "#dff5e6"; c.beginPath(); c.arc(W / 2 - 10, 515, 105, 0, 7); c.fill();
+      c.strokeStyle = "#17233d"; c.lineWidth = 6; c.stroke();
+      const avImg = isPic(profile.avatar) ? await avatarImage() : null;
+      if (avImg) {
+        const i = +profile.avatar.slice(1), sw = avImg.width / 8, shh = avImg.height / 4;
+        c.save(); c.beginPath(); c.arc(W / 2 - 10, 515, 100, 0, 7); c.clip();
+        c.drawImage(avImg, (i % 8) * sw, Math.floor(i / 8) * shh, sw, shh, W / 2 - 110, 415, 200, 200); c.restore();
+        c.strokeStyle = "#17233d"; c.lineWidth = 6; c.beginPath(); c.arc(W / 2 - 10, 515, 105, 0, 7); c.stroke();
+      } else txt(profile.avatar, 522, "130px system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif", "#000");
+      let size = 86; c.font = F(800, size); while (c.measureText(profile.nama).width > W - 260 && size > 40) { size -= 4; c.font = F(800, size); }
+      txt(profile.nama, 690, F(800, size), "#17233d");
+      txt(tr("cKelas", profile.kelas), 770, F(700, 40), "#23a05a");
+      txt(tr("cFor", CARDS.length), 850, F(600, 34), "#45506a");
+      txt(tr("cTopic"), 895, F(600, 34), "#45506a");
+      const t = titleNow();
+      c.fillStyle = "#ffd23f"; c.font = F(800, 46); const tw = c.measureText(t.em + "  " + tName(t)).width + 70;
+      box(W / 2 - 10 - tw / 2, 945, tw, 84, 42); c.fill(); c.strokeStyle = "#17233d"; c.lineWidth = 5; c.stroke();
+      txt(t.em + "  " + tName(t), 990, F(800, 46), "#17233d");
+      txt(tr("cStats", totalStars(), maxStars(), TOPICS.length), 1090, F(700, 36), "#17233d");
+      const d = new Date(), BULAN = tr("months");
+      txt(d.getDate() + " " + BULAN[d.getMonth()] + " " + d.getFullYear(), 1170, F(600, 30), "#7b8496");
+      return cv.toDataURL("image/png");
+    }
+    async function openCertificate() {
+      const url = await makeCertificate();
+      document.getElementById("certImg").src = url;
+      const a = document.getElementById("certDl"); a.href = url; a.download = tr("certFile") + profile.nama.replace(/[^\w-]+/g, "_") + (url.startsWith("data:image/jpeg") ? ".jpg" : ".png");
+      document.getElementById("cert").classList.remove("hidden");
+    }
+    document.getElementById("certClose").addEventListener("click", () => document.getElementById("cert").classList.add("hidden"));
+    function celebrate() {
+      closeSheet(); confetti(); syncNow();
+      if (profile) openCertificate();
+    }
 
     UI.soundBtn.addEventListener("click", () => {
       soundOn = !soundOn;
@@ -1724,21 +2158,52 @@
 
     /* ---------- collection screen ---------- */
     function openCollection() {
-      const n = progress.found.length;
-      UI.collection.querySelector(".box").innerHTML =
-        "<h3>🃏 Koleksi Kad Saya</h3><p style='margin:0 0 6px'>" + n + "/" + CARDS.length + " kad dijumpai · ⭐ " + totalStars() + "</p>" +
+      const n = progress.found.length, t = titleNow();
+      const me = profile
+        ? '<div class="me"><div class="av">' + avHTML(profile.avatar) + "</div><div><b style='font-size:20px'>" + esc(profile.nama) + "</b> · " + esc(profile.kelas) +
+          '<br><span class="t">' + t.em + " " + tName(t) + "</span></div></div>"
+        : "<p class='muted'>" + tr("regFirst") + "</p>";
+      const next = TITLES.find((x) => x.min > totalStars() / Math.max(1, maxStars()));
+      UI.collection.querySelector(".box").innerHTML = me +
+        "<h3>" + tr("myCards") + "</h3><p style='margin:0 0 6px'>" + tr("found", n, CARDS.length) + " · ⭐ " + totalStars() + "/" + maxStars() +
+        (next ? " · " + tr("nextTitle") + ": " + next.em + " " + tName(next) : "") + "</p>" +
         '<div class="bar"><i style="width:' + (100 * n / CARDS.length) + '%"></i></div>' +
         '<div class="grid">' + CARDS.map((c, i) => {
           const f = progress.found.includes(i);
           return '<div class="slot' + (f ? " found" : "") + '"><span class="n">' + (f ? "✓" : "🔒") + "</span>" +
-            (f ? c.title : "Kad " + (i + 1)) + "</div>";
+            (f ? c.title : tr("cardN", i + 1)) + "</div>";
         }).join("") + "</div>" +
-        (TOPICS.length ? "<b>🏅 Lencana</b><div class='badges' style='margin:6px 0 14px'>" +
-          TOPICS.map((t) => '<span class="badge' + (topicDone(t) ? "" : " locked") + '">' + (topicDone(t) ? "🏅 " : "🔒 ") + "Pakar " + t + "</span>").join("") +
+        (TOPICS.length ? "<b>" + tr("badges") + "</b><div class='badges' style='margin:6px 0 14px'>" +
+          TOPICS.map((t) => '<span class="badge' + (topicDone(t) ? "" : " locked") + '">' + (topicDone(t) ? "🏅 " : "🔒 ") + tr("badge", t) + "</span>").join("") +
           "</div>" : "") +
-        '<button class="big next" id="closeCol">Tutup</button>';
+        '<div class="row2"><button class="big" id="certBtn" type="button">' + (allDone() ? tr("myCert") : tr("certLock", n, CARDS.length)) + "</button>" +
+        '<button class="big" id="regBtn" type="button" style="background:#fff">' + (profile ? tr("profile") : tr("register")) + "</button></div>" +
+        (API && CFG.SHOW_LEADERBOARD !== false ? "<b>" + tr("board") + '</b><div class="tabs"><button type="button" data-k="kelas" class="on">' + tr("myClass") + '</button><button type="button" data-k="semua">' + tr("all") + '</button></div><div id="board" class="muted">' + tr("loading") + "</div>" : "") +
+        '<button class="big next" id="closeCol">' + tr("close") + "</button>";
       UI.collection.classList.remove("hidden");
       document.getElementById("closeCol").addEventListener("click", () => UI.collection.classList.add("hidden"));
+      document.getElementById("certBtn").addEventListener("click", () => {
+        if (!profile) return openRegister(false);
+        if (allDone()) openCertificate(); else toast("🔒", tr("lockMsg", CARDS.length));
+      });
+      document.getElementById("regBtn").addEventListener("click", () => openRegister(false));
+      const tabs = UI.collection.querySelectorAll(".tabs button");
+      tabs.forEach((b) => b.addEventListener("click", () => { tabs.forEach((x) => x.classList.toggle("on", x === b)); loadBoard(b.dataset.k); }));
+      if (tabs.length) loadBoard(profile ? "kelas" : "semua");
+    }
+    function loadBoard(kind) {
+      const el = document.getElementById("board"); if (!el) return;
+      el.textContent = tr("loading");
+      const params = { action: "top" }; if (kind === "kelas" && profile) params.kelas = profile.kelas;
+      apiGet(params).then((r) => {
+        const rows = (r && r.top) || [];
+        if (!rows.length) { el.textContent = tr("noPlayers"); return; }
+        el.innerHTML = '<table class="board">' + rows.map((s, i) => {
+          const mine = profile && s.nama.toLowerCase() === profile.nama.toLowerCase() && s.kelas === profile.kelas;
+          return "<tr" + (mine ? ' class="mine"' : "") + "><td>" + (["🥇", "🥈", "🥉"][i] || i + 1) + "</td><td>" + avHTML(s.avatar) + " " + esc(s.nama) +
+            "<br><span class='tiny'>" + esc(s.kelas) + "</span></td><td class='r'>🃏 " + s.kad + "</td><td class='r'>⭐ " + s.bintang + "</td></tr>";
+        }).join("") + "</table>";
+      }).catch(() => (el.textContent = tr("boardErr")));
     }
     UI.collectionBtn.addEventListener("click", openCollection);
     UI.progress.addEventListener("click", openCollection);
