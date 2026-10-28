@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>PhyAR Deck · Guru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="../config.js"></script>
+  <style>
+    :root { --green: #23a05a; --green-d: #157a40; --green-l: #dff5e6; --navy: #17233d; --yellow: #ffd23f;
+      --red: #e2453f; --line: #e3e8ee; --muted: #5b6578; --bg: #f3f8f4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Baloo 2", system-ui, sans-serif; color: var(--navy); background: var(--bg); }
+    button, select, input { font: inherit; }
+    header { background: var(--green); color: #fff; padding: 14px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    header h1 { margin: 0; font-size: 24px; font-weight: 800; line-height: 1.1; }
+    header h1 span { color: var(--yellow); }
+    header .sub { font-size: 14px; opacity: .9; }
+    header .sp { flex: 1; }
+    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .card { background: #fff; border: 2px solid var(--line); border-radius: 18px; padding: 14px 16px; margin-bottom: 14px; }
+    .card h2 { margin: 0 0 8px; font-size: 19px; }
+    .btn { font-weight: 700; border: 3px solid var(--navy); border-radius: 999px; background: var(--yellow);
+      box-shadow: 0 3px 0 var(--navy); padding: 4px 16px; cursor: pointer; color: var(--navy); }
+    .btn.white { background: #fff; }
+    .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--navy); }
+    #login { max-width: 360px; margin: 40px auto; text-align: center; }
+    #login input { width: 100%; font-size: 22px; text-align: center; letter-spacing: 6px; padding: 8px; border: 3px solid var(--navy); border-radius: 14px; margin: 10px 0; }
+    .err { color: var(--red); font-weight: 700; min-height: 24px; }
+    .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+    .tile { background: #fff; border: 2px solid var(--line); border-radius: 18px; padding: 10px 14px; }
+    .tile .v { font-size: 30px; font-weight: 800; line-height: 1.1; }
+    .tile .l { font-size: 14px; color: var(--muted); }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    .tools select, .tools input { border: 2px solid var(--line); border-radius: 12px; padding: 5px 10px; background: #fff; }
+    .tools input { flex: 1; min-width: 140px; }
+    .scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th { text-align: left; font-size: 13px; color: var(--muted); font-weight: 700; padding: 6px 8px; border-bottom: 2px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
+    th.num, td.num { text-align: right; }
+    td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tr.click { cursor: pointer; } tr.click:hover td { background: #fafcf9; }
+    .av { font-size: 24px; width: 44px; }
+    .avi { display: inline-block; width: 1.4em; height: 1.4em; border-radius: 50%; vertical-align: middle;
+      background-image: url("../avatars.jpg"); background-size: 800% 400%; background-color: #fff; }
+    .bar { height: 10px; border-radius: 5px; background: var(--green-l); overflow: hidden; min-width: 70px; }
+    .bar i { display: block; height: 100%; background: var(--green); }
+    .bar.warn i { background: #f0a020; } .bar.low i { background: var(--red); }
+    .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 999px; background: var(--green-l); white-space: nowrap; }
+    .pill.done { background: var(--yellow); }
+    .muted { color: var(--muted); font-size: 14px; }
+    .detail { background: #fafcf9; }
+    .detail td { padding: 10px 12px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); background: #fff; }
+    .chip.ok { background: var(--green-l); border-color: #b8e3c6; }
+    #stats td:first-child { font-weight: 600; }
+    .flag { color: var(--red); font-weight: 800; }
+    .ck { width: 22px; height: 22px; accent-color: var(--green); cursor: pointer; }
+    td.ckc, th.ckc { width: 34px; text-align: center; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 10px; }
+    .btn.warn { background: #fff0c2; } .btn.danger { background: #ffd6d2; }
+    .btn[disabled] { opacity: .45; cursor: default; }
+    .btn.sm { font-size: 14px; padding: 2px 12px; box-shadow: 0 2px 0 var(--navy); border-width: 2px; }
+    .ok-msg { color: var(--green-d); font-weight: 700; }
+    @media (max-width: 720px) { .tiles { grid-template-columns: repeat(2, 1fr); } .hide-sm { display: none; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div><h1>Phy<span>AR</span> Deck · Halaman Guru</h1><div class="sub">Gelombang · Fizik Tingkatan 4</div></div>
+    <div class="sp"></div>
+    <button id="refresh" class="btn white" hidden>🔄 Muat semula</button>
+    <button id="csv" class="btn" hidden>⬇️ Muat turun CSV</button>
+  </header>
+
+  <main>
+    <div id="login" class="card">
+      <h2>🔒 Masukkan PIN guru</h2>
+      <p class="muted">PIN ini ditetapkan dalam Google Apps Script anda.</p>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="off" />
+      <div id="err" class="err"></div>
+      <button id="go" class="btn">Masuk</button>
+    </div>
+
+    <div id="app" hidden>
+      <div class="tiles">
+        <div class="tile"><div class="v" id="tReg">0</div><div class="l">pelajar berdaftar</div></div>
+        <div class="tile"><div class="v" id="tDone">0</div><div class="l">selesai 16/16 kad</div></div>
+        <div class="tile"><div class="v" id="tAvg">0</div><div class="l">purata kad dikumpul</div></div>
+        <div class="tile"><div class="v" id="tToday">0</div><div class="l">aktif hari ini</div></div>
+      </div>
+
+      <div class="card">
+        <h2>👩‍🎓 Pelajar</h2>
+        <div class="tools">
+          <select id="fKelas"></select>
+          <input id="fSearch" placeholder="Cari nama…" />
+          <span class="muted" id="count"></span>
+        </div>
+        <div class="actions">
+          <button id="bReset" class="btn warn" disabled>↺ Set semula markah</button>
+          <button id="bDelete" class="btn danger" disabled>🗑️ Padam pelajar</button>
+          <span class="muted" id="selInfo">Tandakan ☑ pelajar untuk set semula atau padam.</span>
+        </div>
+        <div class="scroll"><table id="students"></table></div>
+        <p class="muted">Klik pada pelajar untuk melihat kad dan markah kuiz mereka.</p>
+      </div>
+
+      <div class="card">
+        <h2>📊 Prestasi mengikut kad</h2>
+        <p class="muted">Ramalan betul = peratus pelajar yang meramal dengan betul pada percubaan pertama (sebelum melihat animasi).
+          Kuiz = purata markah percubaan pertama. <span class="flag">⚠</span> menandakan kad yang paling mencabar.</p>
+        <div class="scroll"><table id="stats"></table></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const CARD_TITLES = ["Gelombang Melintang", "Gelombang Membujur", "Gelombang Mekanikal", "Gelombang Elektromagnet",
+      "Ciri-ciri Gelombang", "Pantulan Gelombang", "Gelombang Ultrasonik", "Gelombang Bunyi · Gas Asli", "Sonar",
+      "Pelembapan", "Resonans", "Pembiasan Gelombang", "Pembiasan Bunyi · Siang", "Pembiasan Bunyi · Malam",
+      "Pembiasan Ombak Laut", "Interferens Gelombang"];
+    const N = CARD_TITLES.length;
+    const API = ((window.PHYAR_CONFIG || {}).SCRIPT_URL || "").trim();
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    function avHTML(a) {
+      if (!/^a\d{1,2}$/.test(String(a))) return esc(a);
+      const i = +String(a).slice(1);
+      return '<span class="avi" style="background-position:' + ((i % 8) * 100 / 7) + "% " + (Math.floor(i / 8) * 100 / 3) + '%"></span>';
+    }
+    let ALL = [], sortKey = "kad", sortDir = -1, openId = null;
+    const picked = new Set();
+
+    const fmtTime = (v) => {
+      if (!v) return "–";
+      const d = new Date(v); if (isNaN(d)) return "–";
+      const mins = (Date.now() - d) / 60000;
+      if (mins < 1) return "baru sahaja";
+      if (mins < 60) return Math.round(mins) + " min lalu";
+      if (mins < 1440) return Math.round(mins / 60) + " jam lalu";
+      return d.toLocaleDateString("ms-MY", { day: "numeric", month: "short" });
+    };
+    const pct = (a, b) => (b ? Math.round((100 * a) / b) : null);
+    const barCls = (p) => (p === null ? "" : p < 50 ? " low" : p < 70 ? " warn" : "");
+    const bar = (p) => '<div class="bar' + barCls(p) + '"><i style="width:' + (p || 0) + '%"></i></div>';
+
+    async function load(pin) {
+      $("err").textContent = "";
+      if (!API) { $("err").textContent = "SCRIPT_URL belum ditetapkan dalam config.js."; return; }
+      $("go").disabled = true; $("go").textContent = "Memuatkan…";
+      try {
+        const r = await fetch(API + "?action=list&pin=" + encodeURIComponent(pin)).then((x) => x.json());
+        if (!r.ok) throw new Error(r.error || "Ralat");
+        try { sessionStorage.setItem("phyar_pin", pin); } catch (e) {}
+        ALL = r.students || [];
+        [...picked].forEach((id) => { if (!ALL.some((s) => s.id === id)) picked.delete(id); });
+        $("login").hidden = true; $("app").hidden = false; $("refresh").hidden = false; $("csv").hidden = false;
+        buildFilter(); render();
+      } catch (e) {
+        $("err").textContent = e.message === "PIN salah" ? "PIN salah. Cuba lagi." : "Tidak dapat memuatkan data. Semak internet dan SCRIPT_URL.";
+        try { sessionStorage.removeItem("phyar_pin"); } catch (x) {}
+      }
+      $("go").disabled = false; $("go").textContent = "Masuk";
+    }
+
+    function buildFilter() {
+      const cur = $("fKelas").value, kelas = [...new Set(ALL.map((s) => s.kelas))].sort();
+      $("fKelas").innerHTML = '<option value="">Semua kelas</option>' + kelas.map((k) => '<option>' + esc(k) + "</option>").join("");
+      if (kelas.includes(cur)) $("fKelas").value = cur;
+    }
+
+    function filtered() {
+      const k = $("fKelas").value, q = $("fSearch").value.trim().toLowerCase();
+      return ALL.filter((s) => (!k || s.kelas === k) && (!q || s.nama.toLowerCase().includes(q)));
+    }
+
+    function render() {
+      const list = filtered();
+      const today = new Date().toDateString();
+      $("tReg").textContent = list.length;
+      $("tDone").textContent = list.filter((s) => s.kad >= N).length;
+      $("tAvg").textContent = list.length ? (list.reduce((a, s) => a + s.kad, 0) / list.length).toFixed(1) : "0";
+      $("tToday").textContent = list.filter((s) => s.aktif && new Date(s.aktif).toDateString() === today).length;
+      $("count").textContent = list.length + " pelajar";
+
+      const val = (s) => (sortKey === "aktif" ? new Date(s.aktif || 0).getTime() : sortKey === "nama" || sortKey === "kelas" ? s[sortKey].toLowerCase() : s[sortKey]);
+      list.sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * sortDir);
+      const head = [["ck", ""], ["", ""], ["nama", "Nama"], ["kelas", "Kelas"], ["kad", "Kad"], ["bintang", "⭐", "num"], ["gelaran", "Gelaran", "hide-sm"], ["aktif", "Aktif", "hide-sm"]];
+      const allOn = list.length > 0 && list.every((s) => picked.has(s.id));
+      $("students").innerHTML = "<tr>" + head.map(([k, t, c]) => k === "ck"
+          ? '<th class="ckc"><input type="checkbox" class="ck" id="ckAll" title="Pilih semua"' + (allOn ? " checked" : "") + "></th>"
+          : '<th data-k="' + k + '" class="' + (c || "") + '">' + t + (k === sortKey ? (sortDir > 0 ? " ▲" : " ▼") : "") + "</th>").join("") + "</tr>" +
+        (list.length ? list.map((s) => {
+          const row = '<tr class="click" data-id="' + esc(s.id) + '"><td class="ckc"><input type="checkbox" class="ck" data-id="' + esc(s.id) + '"' + (picked.has(s.id) ? " checked" : "") + '></td><td class="av">' + avHTML(s.avatar) + "</td><td><b>" + esc(s.nama) + "</b>" +
+            (s.kad >= N ? ' <span class="pill done">🎓 Selesai</span>' : "") + "</td><td>" + esc(s.kelas) + "</td>" +
+            '<td><div style="display:flex;align-items:center;gap:8px">' + bar(pct(s.kad, N)).replace(' low', '').replace(' warn', '') + "<span>" + s.kad + "/" + N + "</span></div></td>" +
+            '<td class="num">' + s.bintang + '</td><td class="hide-sm"><span class="pill">' + esc(s.gelaran) + '</span></td><td class="hide-sm muted">' + fmtTime(s.aktif) + "</td></tr>";
+          return row + (openId === s.id ? detail(s) : "");
+        }).join("") : '<tr><td colspan="8" class="muted">Belum ada pelajar. Kongsi pautan PhyAR Deck dengan pelajar anda.</td></tr>');
+      $("students").querySelectorAll("th[data-k]").forEach((th) => th.addEventListener("click", () => {
+        const k = th.dataset.k; if (!k) return;
+        if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = k === "nama" || k === "kelas" ? 1 : -1; }
+        render();
+      }));
+      $("students").querySelectorAll("tr.click").forEach((tr) => tr.addEventListener("click", (e) => {
+        if (e.target.closest("input, button")) return;
+        openId = openId === tr.dataset.id ? null : tr.dataset.id; render();
+      }));
+      $("students").querySelectorAll("td .ck").forEach((c) => c.addEventListener("change", () => {
+        if (c.checked) picked.add(c.dataset.id); else picked.delete(c.dataset.id); render();
+      }));
+      const ckAll = $("ckAll");
+      if (ckAll) ckAll.addEventListener("change", () => { list.forEach((s) => (ckAll.checked ? picked.add(s.id) : picked.delete(s.id))); render(); });
+      $("students").querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => act(b.dataset.act, [b.dataset.id])));
+      const n = picked.size;
+      $("bReset").disabled = $("bDelete").disabled = !n;
+      if (!$("selInfo").classList.contains("ok-msg")) $("selInfo").textContent = n ? n + " pelajar dipilih" : "Tandakan ☑ pelajar untuk set semula atau padam.";
+      renderStats(list);
+    }
+
+    function detail(s) {
+      const d = s.data || {}, found = d.found || [], quiz = d.quiz || {}, poe = d.poe || {};
+      const chips = CARD_TITLES.map((t, i) => {
+        const q = quiz[i], has = found.includes(i);
+        return '<span class="chip' + (has ? " ok" : "") + '">' + (has ? "✓ " : "🔒 ") + (i + 1) + ". " + esc(t) +
+          (q ? " · kuiz " + q[0] + "/" + q[1] : "") + (i in poe ? (poe[i] ? " · ramalan ✓" : " · ramalan ✗") : "") + "</span>";
+      }).join("");
+      return '<tr class="detail"><td colspan="8"><b>' + avHTML(s.avatar) + " " + esc(s.nama) + "</b> · " + esc(s.kelas) +
+        ' · daftar ' + fmtTime(s.daftar) + (s.lencana ? " · 🏅 " + esc(s.lencana) : "") + '<div class="chips" style="margin-top:6px">' + chips + "</div>" +
+        '<div class="actions" style="margin:10px 0 0"><button class="btn warn sm" data-act="reset" data-id="' + esc(s.id) + '">↺ Set semula markah</button>' +
+        '<button class="btn danger sm" data-act="delete" data-id="' + esc(s.id) + '">🗑️ Padam pelajar ini</button></div></td></tr>';
+    }
+
+    function renderStats(list) {
+      const rows = CARD_TITLES.map((t, i) => {
+        let seen = 0, poeN = 0, poeOk = 0, qS = 0, qT = 0;
+        list.forEach((s) => {
+          const d = s.data || {};
+          if ((d.found || []).includes(i)) seen++;
+          if (d.poe && i in d.poe) { poeN++; if (d.poe[i]) poeOk++; }
+          const q = d.quiz && d.quiz[i]; if (q) { qS += q[2]; qT += q[1]; }
+        });
+        return { i, t, seen, poe: pct(poeOk, poeN), quiz: pct(qS, qT) };
+      });
+      const scored = rows.filter((r) => r.quiz !== null).sort((a, b) => a.quiz - b.quiz).slice(0, 3).map((r) => r.i);
+      $("stats").innerHTML = '<tr><th>Kad</th><th class="num">Diimbas</th><th>Ramalan betul</th><th>Kuiz (percubaan pertama)</th></tr>' +
+        rows.map((r) => "<tr><td>" + (scored.includes(r.i) ? '<span class="flag">⚠ </span>' : "") + (r.i + 1) + ". " + esc(r.t) +
+          '</td><td class="num">' + r.seen + "/" + list.length +
+          '</td><td><div style="display:flex;align-items:center;gap:8px">' + bar(r.poe) + "<span>" + (r.poe === null ? "–" : r.poe + "%") + "</span></div>" +
+          '</td><td><div style="display:flex;align-items:center;gap:8px">' + bar(r.quiz) + "<span>" + (r.quiz === null ? "–" : r.quiz + "%") + "</span></div></td></tr>").join("");
+    }
+
+    function downloadCSV() {
+      const list = filtered();
+      const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+      const head = ["Nama", "Kelas", "Avatar", "Kad", "Bintang", "Gelaran", "Lencana", "Selesai", "Tarikh daftar", "Aktif terakhir"]
+        .concat(CARD_TITLES.map((t, i) => "Kuiz " + (i + 1) + " (" + t + ")"));
+      const lines = [head.map(q).join(",")].concat(list.map((s) => {
+        const quiz = (s.data && s.data.quiz) || {};
+        return [s.nama, s.kelas, /^a\d+$/.test(s.avatar) ? "Avatar " + (+s.avatar.slice(1) + 1) : s.avatar, s.kad, s.bintang, s.gelaran, s.lencana, s.kad >= N ? "Ya" : "",
+          s.daftar ? new Date(s.daftar).toLocaleString("ms-MY") : "", s.aktif ? new Date(s.aktif).toLocaleString("ms-MY") : ""]
+          .concat(CARD_TITLES.map((t, i) => (quiz[i] ? quiz[i][0] + "/" + quiz[i][1] : ""))).map(q).join(",");
+      }));
+      const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = "PhyAR-pelajar-" + new Date().toISOString().slice(0, 10) + ".csv"; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    $("go").addEventListener("click", () => load($("pin").value.trim()));
+    $("pin").addEventListener("keydown", (e) => { if (e.key === "Enter") load($("pin").value.trim()); });
+    $("refresh").addEventListener("click", () => { let p = ""; try { p = sessionStorage.getItem("phyar_pin") || ""; } catch (e) {} load(p); });
+    $("csv").addEventListener("click", downloadCSV);
+
+    /* reset scores / delete students */
+    async function act(kind, ids) {
+      ids = ids.filter(Boolean); if (!ids.length) return;
+      const names = ids.map((id) => (ALL.find((s) => s.id === id) || {}).nama).filter(Boolean);
+      const who = names.length <= 3 ? names.join(", ") : names.length + " pelajar";
+      const msg = kind === "reset"
+        ? "Set semula markah " + who + "?\n\nSemua kad, bintang, kuiz dan gelaran akan kembali kepada sifar. Nama dan avatar kekal."
+        : "Padam " + who + "?\n\nNama dan semua markah akan dibuang. Pelajar perlu mendaftar semula. Tindakan ini tidak boleh dibatalkan.";
+      if (!confirm(msg)) return;
+      let pin = ""; try { pin = sessionStorage.getItem("phyar_pin") || ""; } catch (e) {}
+      $("bReset").disabled = $("bDelete").disabled = true;
+      try {
+        const r = await fetch(API + "?action=" + kind + "&pin=" + encodeURIComponent(pin) + "&ids=" + encodeURIComponent(ids.join(","))).then((x) => x.json());
+        if (!r.ok) throw new Error(r.error || "Ralat");
+        ids.forEach((id) => picked.delete(id)); openId = null;
+        $("selInfo").className = "ok-msg";
+        $("selInfo").textContent = "✓ " + r.done + " pelajar telah " + (kind === "reset" ? "diset semula." : "dipadam.") +
+          " Telefon pelajar akan dikemas kini apabila mereka membuka PhyAR Deck.";
+        setTimeout(() => { $("selInfo").className = "muted"; render(); }, 6000);
+        await load(pin);
+      } catch (e) {
+        alert("Tidak berjaya: " + (e.message === "PIN salah" ? "PIN salah." : "semak internet dan cuba lagi."));
+        render();
+      }
+    }
+    $("bReset").addEventListener("click", () => act("reset", [...picked]));
+    $("bDelete").addEventListener("click", () => act("delete", [...picked]));
+    $("fKelas").addEventListener("change", render);
+    $("fSearch").addEventListener("input", render);
+    try { const p = sessionStorage.getItem("phyar_pin"); if (p) load(p); } catch (e) {}
+  </script>
+</body>
+</html>
