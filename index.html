@@ -16,6 +16,7 @@
     (function () {
       const md = navigator.mediaDevices;
       if (!md || !md.getUserMedia) return;
+      if (((window.PHYAR_CONFIG || {}).CAMERA || "") === "off") return;   // CAMERA: "off" = phone's default camera
       const orig = md.getUserMedia.bind(md);
       md.getUserMedia = function (c) {
         try {
