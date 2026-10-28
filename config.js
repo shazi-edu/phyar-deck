@@ -5,7 +5,7 @@ window.PHYAR_CONFIG = {
   // Tampal URL Web App Google Apps Script anda di antara tanda petik.
   // Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
   // Jika dibiarkan kosong, laman masih berfungsi tetapi data tidak dihantar kepada guru.
-  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwuh86AhdxWDpO4Sv4vkY4XVlQu3tdFAbSL7BfPh56cLlXgX11BBhs-ORMwYLZMlrc2/exec",
+  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwP4PEpDfR2BhYECpjK43vNo68wWFP7WmNt7XKGeZESLN8YhnX-ILJ6YRKj94M3x_Lc/exec",
 
   // true  = pelajar boleh lihat carta (kelas & semua) dalam "Koleksi Saya"
   // false = carta hanya dalam halaman guru
